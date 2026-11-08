@@ -1,21 +1,32 @@
-# TwitchPlus
+# TwitchPlus — Twitch Ad Block + Live Rewind for iPhone & iPad
 
-**Rewind live streams. Read chat while banned. Keep banned channels in Following locally.**
+![TwitchPlus — Ad Block and Live Rewind](assets/hero.svg)
+
+**Twitch ad blocking + native live rewind, with Anti-Ban chat and local Forced Follow.**
+
+Go back to a moment you missed, skip in ten-second steps, and return to LIVE—all in the existing player. The included TwitchAdBlock base handles ad blocking.
 
 ![Version](https://img.shields.io/badge/version-1.2.2--beta.6-9146FF) ![Platform](https://img.shields.io/badge/platform-iPhone%20%7C%20iPad-555) ![Status](https://img.shields.io/badge/status-beta-orange)
 
+[![Download IPA](https://img.shields.io/badge/Download_IPA-9146FF?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/latest)
+[![Releases](https://img.shields.io/github/v/release/Kite1219/TwitchPlus-AdBlock-Rewind?style=for-the-badge&label=Updates)](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases)
+[![GitHub stars](https://img.shields.io/github/stars/Kite1219/TwitchPlus-AdBlock-Rewind?style=for-the-badge)](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind)
+
+**Find it useful? Give the repo a star to help other people discover it.**
+
 ## Download
 
-### [Download the latest IPA](https://github.com/Kite1219/TwitchPlus/releases/download/v1.2.2-beta.6/TwitchPlus-1.2.2-Beta6-unsigned.ipa)
+### [Download the latest IPA](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.2.2-beta.6/TwitchPlus-1.2.2-Beta6-unsigned.ipa)
 
-[Release notes and downloads](https://github.com/Kite1219/TwitchPlus/releases) · [Report a problem](https://github.com/Kite1219/TwitchPlus/issues/new)
+[Release notes and downloads](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases) · [Report a problem](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/issues/new)
 
 The home-screen app name stays **Twitch**. This is an **unsigned beta**; sign it using your normal sideloading or LiveContainer workflow.
 
-## What you get
+## Ad Block + Live Rewind, plus more
 
 | Feature | What it does |
 | --- | --- |
+| **Ad Block** | Includes the existing TwitchAdBlock component from the supplied base IPA. Ad-blocking behavior depends on that component and Twitch changes. |
 | **Native live rewind** | Scrub through an available ongoing recording in the existing video player. No separate browser or popup. |
 | **Purple timeline** | Full-width Twitch-colored progress bar above the normal bottom controls. |
 | **Precise timestamps** | HH:MM:SS shows your selected position while dragging and during replay. Hidden at live. |
@@ -47,7 +58,7 @@ These features bypass the **app-side viewing and local-list limitations** for ac
 
 ## Updates and version downloads
 
-**[Open all releases](https://github.com/Kite1219/TwitchPlus/releases)** to download an IPA and read its update notes. Open a version and expand **Assets** if needed; choose the **`.ipa` file**, not GitHub's automatically generated source-code ZIP.
+**[Open all releases](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases)** to download an IPA and read its update notes. Open a version and expand **Assets** if needed; choose the **`.ipa` file**, not GitHub's automatically generated source-code ZIP.
 
 Each newly published version gets its own release, IPA, update notes, checksum, and validation summary. Older published releases remain on GitHub when local build copies are cleaned up. Builds made before this repository existed are described in the changelog but do not have historical IPA assets here.
 
