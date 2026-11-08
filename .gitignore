@@ -1,0 +1,10 @@
+*.ipa
+*.dylib
+*.o
+*.obj
+*.dll
+*.lib
+*.exp
+__pycache__/
+build/
+.env

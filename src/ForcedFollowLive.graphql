@@ -1,0 +1,25 @@
+query LiveStreamsForUsers($userIDs: [ID!]!, $includeHasBrandedContent: Boolean!, $includeIsParticipatingDJ: Boolean = false, $includeCollaborationCount: Boolean!) { users(ids: $userIDs) { __typename stream { __typename ...StreamFragment contentClassificationLabels { __typename ...ContentClassificationLabelFragment } contentPolicyProperties @include(if: $includeHasBrandedContent) { __typename hasBrandedContent } broadcaster { __typename self { __typename follower { __typename notificationSettings { __typename isEnabled } } } } } } }
+
+fragment StreamFragment on Stream { __typename id streamCreationDate: createdAt game { __typename ...GameFragment } viewersCount collaborationViewersCount @include(if: $includeCollaborationCount) costreamDetails { __typename totalViewersCount role organizer { __typename ...UserFragment stream { __typename id } } costreamersCount topCostreamers { __typename ...UserFragment } } broadcaster { __typename channel { __typename restriction { __typename ...ResourceRestrictionFragment } guestStarSessionCall { __typename id host { __typename id } guests { __typename ...GuestStarViewerSlotFragment } } collaboration { __typename ...CollaborationViewerGroupFragment } } broadcastSettings { __typename title game { __typename tags(tagType: CONTENT) { __typename ...TagFragment } } } ...UserFragment } broadcasterSoftware tinyStreamThumbnail: previewImageURL(width: 86, height: 48) smallStreamThumbnail: previewImageURL(width: 260, height: 146) mediumStreamThumbnail: previewImageURL(width: 480, height: 270) largeStreamThumbnail: previewImageURL(width: 640, height: 360) largeStreamVerticalThumbnail: previewImageURL(width: 360, height: 640) type isEncrypted streamTags: tags { __typename ...TagFragment } freeformTags { __typename name } currentUser: self { __typename canWatch } previewThumbnailProperties { __typename blurReason } isDualFormat height width }
+
+fragment GameFragment on Game { __typename ...GameIdentityFragment smallBoxArtURL: boxArtURL(width: 54, height: 72) mediumBoxArtURL: boxArtURL(width: 141, height: 188) largeBoxArtURL: boxArtURL(width: 285, height: 380) smallCoverURL: coverURL(width: 600, height: 90) mediumCoverURL: coverURL(width: 1200, height: 180) largeCoverURL: coverURL(width: 1800, height: 270) logoURL originalReleaseDate giantBombID followersCount viewersCount broadcastersCount gameTags: tags(tagType: CONTENT) { __typename id tagName localizedName } }
+
+fragment GameIdentityFragment on Game { __typename id gameSlug: slug gameName: name gameDisplayName: displayName }
+
+fragment UserFragment on User { __typename ...IdentityFragment smallProfileImageURL: profileImageURL(width: 300) mediumProfileImageURL: profileImageURL(width: 600) bannerImageURL followers(first: 1) { __typename totalCount } lastBroadcast { __typename title game { __typename ...GameIdentityFragment } startedAt } profileViewCount bio: description userCreatedAt: createdAt updatedAt roles { __typename ...UserRolesFragment } broadcastSettings { __typename isMature language } profileURL primaryColorHex }
+
+fragment IdentityFragment on User { __typename userID: id name: login displayName }
+
+fragment UserRolesFragment on UserRoles { __typename isAffiliate isPartner isStaff isParticipatingDJ @include(if: $includeIsParticipatingDJ) isPreAffiliate isMonetized }
+
+fragment ResourceRestrictionFragment on ResourceRestriction { __typename type exemptions { __typename ...ResourceRestrictionExemptionFragment } }
+
+fragment ResourceRestrictionExemptionFragment on ResourceRestrictionExemption { __typename type startsAt endsAt keys }
+
+fragment GuestStarViewerSlotFragment on GuestStarSlotForViewers { __typename id user { __typename ...UserFragment self { __typename follower { __typename followedAt } } stream { __typename id viewersCount } } }
+
+fragment CollaborationViewerGroupFragment on CollaborationGroupForViewers { __typename id collaborators { __typename id role status user { __typename userID: id name: login displayName smallProfileImageURL: profileImageURL(width: 300) mediumProfileImageURL: profileImageURL(width: 600) stream { __typename id viewersCount } self { __typename follower { __typename followedAt } } } } }
+
+fragment TagFragment on Tag { __typename id localizedName tagName localizedDescription isLanguageTag isAutomated scope }
+
+fragment ContentClassificationLabelFragment on ContentClassificationLabel { __typename id localizedName description isEnabled offsetSeconds isLocked lockedUntil isSelectable }
