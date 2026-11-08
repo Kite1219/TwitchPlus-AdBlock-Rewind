@@ -1,6 +1,6 @@
 # TwitchPlus
 
-**Rewind live streams. Jump back to LIVE. Keep your favorite channels close.**
+**Rewind live streams. Read chat while banned. Keep banned channels in Following locally.**
 
 ![Version](https://img.shields.io/badge/version-1.2.2--beta.6-9146FF) ![Platform](https://img.shields.io/badge/platform-iPhone%20%7C%20iPad-555) ![Status](https://img.shields.io/badge/status-beta-orange)
 
@@ -23,10 +23,33 @@ The home-screen app name stays **Twitch**. This is an **unsigned beta**; sign it
 | **10-second skips** | Circular back/forward controls grouped around the middle of the player. |
 | **LIVE shortcut** | Red LIVE badge at live; a dark return-to-live badge when behind. Positioned above the right edge of the timeline. |
 | **Background preparation** | Recording access and manifests prepare while you watch live. |
-| **Local Forced Follow** | Save a channel locally and include it in native live Following lists, including the iPad sidebar. This does not follow the channel on Twitch's servers. |
-| **Native read-only chat fallback** | Anonymous read-only chat can appear in the existing chat area when the signed-in chat is unavailable. It does not grant permission to send messages. |
+| **Anti-Ban: read chat** | Anonymous, read-only chat in the native chat area when a channel ban blocks your signed-in chat view and public chat remains accessible. |
+| **Anti-Ban: Forced Follow** | Keep a banned channel in your local live Following list for quick access, even when Twitch will not let your account follow it. Includes the iPad sidebar. |
 | **Existing ad blocking** | Preserves the TwitchAdBlock component supplied in the base IPA. This project did not author that component. |
 | **iPhone and iPad layouts** | Uses native controls and preserves the existing iPad Following fix. Device coverage is still incomplete. |
+
+## Anti-Ban: read chat + Forced Follow
+
+A channel ban can leave you unable to read that channel's chat in the app or follow the channel for quick access. **Anti-Ban combines two local workarounds:**
+
+- **Read chat while banned:** the native chat area can use an anonymous, read-only connection when public chat is available. No extra chat window or manual streamer-name entry.
+- **Forced Follow:** add the channel to your device's Following list without performing a real Twitch follow. When the channel is live, it can appear alongside your normally followed live channels, including in the iPad sidebar.
+
+### Why Forced Follow?
+
+If you cannot follow a banned channel, it disappears from your usual quick-access list. Forced Follow lets you keep it within reach and see it when live instead of searching for it every time.
+
+1. Open the channel page and tap **Forced Follow**.
+2. The button changes to **Forced Following**. The channel is saved on this device.
+3. Look in your live Following list when the channel is broadcasting. Tap the button again to remove the local entry.
+
+These features bypass the **app-side viewing and local-list limitations** for accessible public content. They **do not remove the channel ban**, restore permission to send chat messages, or create a real server-side follow. Saved channels are local to the app's data; they do not sync as actual Twitch follows.
+
+## Updates and version downloads
+
+**[Open all releases](https://github.com/Kite1219/TwitchPlus/releases)** to download an IPA and read its update notes. Open a version and expand **Assets** if needed; choose the **`.ipa` file**, not GitHub's automatically generated source-code ZIP.
+
+Each newly published version gets its own release, IPA, update notes, checksum, and validation summary. Older published releases remain on GitHub when local build copies are cleaned up. Builds made before this repository existed are described in the changelog but do not have historical IPA assets here.
 
 ## Install
 
