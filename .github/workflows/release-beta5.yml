@@ -8,6 +8,7 @@ on:
       - tools/build-fixes-*.sh
       - tools/embed-playlist-engine.py
       - tools/package-rewind-update.py
+      - tools/test-layout-macos.sh
       - tests/**
 permissions:
   contents: read

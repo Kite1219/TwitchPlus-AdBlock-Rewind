@@ -582,7 +582,7 @@ static BOOL TPVisibleIn(UIView *view,UIView *root) {
     return NO;
 }
 static void TPReleaseTheater(UIView *theater) {
-    for(NSString *name in @[@"controlsView",@"controlsContainerView",@"videoPlayerStackView"]) {
+    for(NSString *name in @[@"controlsView",@"controlsContainerView",@"videoPlayerStackView",@"videoPlayerViewConstraintProxy"]) {
         UIView *view=TPField(theater,name.UTF8String);
         if([view isKindOfClass:[UIView class]]) TPReleasePlacement(view);
     }
@@ -590,12 +590,16 @@ static void TPReleaseTheater(UIView *theater) {
 static void TPFitTheater(UIView *self) {
     UIView *stack=TPField(self,"videoPlayerStackView"),*video=TPField(self,"videoPlayerView");
     UIView *container=TPField(self,"controlsContainerView"),*controls=TPField(self,"controlsView");
+    UIView *proxy=TPField(self,"videoPlayerViewConstraintProxy");
+    BOOL proxyParent=[proxy isKindOfClass:[UIView class]] && proxy.superview==self;
     // Never render outside the native gesture owner's bounds. UIKit rejects
     // touches outside an ancestor even when clipsToBounds is disabled.
-    if(!self.window || !TPWidePhone(self.window) || stack.superview!=self ||
-       container.superview!=self || !TPDescendant(controls,container) ||
+    if(!self.window || !TPWidePhone(self.window) ||
        ![stack isKindOfClass:[UIView class]] || ![container isKindOfClass:[UIView class]] ||
-       ![controls isKindOfClass:[UIView class]]) { TPReleaseTheater(self); return; }
+       ![controls isKindOfClass:[UIView class]] ||
+       (stack.superview!=self && !(proxyParent && stack.superview==proxy)) ||
+       (container.superview!=self && !(proxyParent && container.superview==proxy)) ||
+       controls.superview!=container) { TPReleaseTheater(self); return; }
     CGRect native=[stack convertRect:stack.bounds toView:self];
     CGRect window=[self.window convertRect:self.window.bounds toView:self];
     UIView *chat=TPField(self,"accessoryContainerView");
@@ -603,15 +607,14 @@ static void TPFitTheater(UIView *self) {
     if([chat isKindOfClass:[UIView class]] && TPVisibleIn(chat,self)) chatBox=[chat convertRect:chat.bounds toView:self];
     CGRect area=tp_theater_viewport(self.bounds,window,native,chatBox,1);
     if(!tp_rect_valid(area)) { TPReleaseTheater(self); return; }
+    if(proxyParent && (stack.superview==proxy || container.superview==proxy)) TPPlace(proxy,self,area,YES);
     TPPlace(stack,self,area,YES);
     // Move the actual control hierarchy, including the native tap surface and
     // the rewind timeline. Resizing the rendered video alone leaves dead space.
     // Relative edges follow the final Auto Layout result, including the native
     // portrait aspect-ratio height. No cached pre-rotation control dimensions.
     TPMatch(container,stack,self);
-    if(controls.superview==container) {
-        TPMatch(controls,container,self);
-    }
+    TPMatch(controls,container,self);
     if([video isKindOfClass:[UIView class]]) TPAspect(video);
     TPCount(@"theaterViewportLayouts");
     TPTheaterGeometry=[NSString stringWithFormat:@"Theater %.0fx%.0f; viewport (%.0f,%.0f) %.0fx%.0f; chat (%.0f,%.0f) %.0fx%.0f; controls %.0fx%.0f",

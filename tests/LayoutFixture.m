@@ -20,11 +20,13 @@ static BOOL Near(double a,double b) { return fabs(a-b)<.5; }
 @interface TPTestTheater:UIView {
 @public
     UIView *videoPlayerStackView,*videoPlayerView,*controlsContainerView,*controlsView,*accessoryContainerView;
+    UIView *videoPlayerViewConstraintProxy;
     UIGestureRecognizer *tapGesture,*doubleTapGesture;
+    BOOL layoutRepairEnabled;
 }
 @end
 @implementation TPTestTheater
-- (void)layoutSubviews { [super layoutSubviews]; TPFitTheater(self); }
+- (void)layoutSubviews { [super layoutSubviews]; if(layoutRepairEnabled) TPFitTheater(self); }
 @end
 
 static void Flush(TPTestTheater *theater) {
@@ -51,6 +53,7 @@ static NSArray *RunFixtures(UIWindow *window) {
     TPOldTheaterFrame=(void *)TPHook("TPTestTheater",@selector(setFrame:),(IMP)TPTheaterSetFrame);
     TPOldTheaterBounds=(void *)TPHook("TPTestTheater",@selector(setBounds:),(IMP)TPTheaterSetBounds);
     TPTestTheater *t=[[TPTestTheater alloc] initWithFrame:CGRectMake(0,0,1000,700)];
+    t->layoutRepairEnabled=YES;
     [window.rootViewController.view addSubview:t];
     t->videoPlayerStackView=[UIView new]; t->videoPlayerView=[UIView new];
     t->controlsContainerView=[UIView new]; t->controlsView=[UIView new];
@@ -97,9 +100,32 @@ static NSArray *RunFixtures(UIWindow *window) {
         t.frame=CGRectMake(0,0,1000,700); Flush(t); TPRefreshTheater(t,YES); Flush(t);
         CheckSurfaces(t,1000);
     }
-    TPReleaseTheater(t); [t layoutIfNeeded];
-    for(NSLayoutConstraint *constraint in native) Check(constraint.active,@"Native constraints not restored before transition");
+    t->layoutRepairEnabled=NO; TPReleaseTheater(t);
+    for(NSLayoutConstraint *constraint in native) Check(constraint.active,[NSString stringWithFormat:@"Native constraint not restored before transition: %@",constraint]);
+    [t layoutIfNeeded];
     Check(Near(t->controlsContainerView.bounds.size.width,640),@"Native geometry was not restored");
+
+    // The supplied app also exposes a UIView videoPlayerViewConstraintProxy.
+    // A stack nested inside it must not overflow an unchanged ancestor hit area.
+    t->videoPlayerViewConstraintProxy=[UIView new];
+    UIView *proxy=t->videoPlayerViewConstraintProxy; proxy.translatesAutoresizingMaskIntoConstraints=NO; proxy.clipsToBounds=YES;
+    [t addSubview:proxy]; [t->videoPlayerStackView removeFromSuperview]; [proxy addSubview:t->videoPlayerStackView];
+    [t bringSubviewToFront:t->controlsContainerView]; [t bringSubviewToFront:t->accessoryContainerView];
+    NSArray *nestedNative=@[
+        [proxy.leadingAnchor constraintEqualToAnchor:t.leadingAnchor],
+        [proxy.topAnchor constraintEqualToAnchor:t.topAnchor],
+        [proxy.widthAnchor constraintEqualToConstant:650],
+        [proxy.heightAnchor constraintEqualToConstant:700],
+        [t->videoPlayerStackView.leadingAnchor constraintEqualToAnchor:proxy.leadingAnchor],
+        [t->videoPlayerStackView.topAnchor constraintEqualToAnchor:proxy.topAnchor constant:30]];
+    [NSLayoutConstraint activateConstraints:nestedNative];
+    t->layoutRepairEnabled=YES; Flush(t); CheckSurfaces(t,1000);
+    Check(Near(proxy.bounds.size.width,1000),@"Intermediate ancestor retains stale hit width");
+    t->accessoryContainerView.hidden=NO; Flush(t); CheckSurfaces(t,700);
+    Check(Near(proxy.bounds.size.width,700),@"Intermediate ancestor ignores side chat");
+    t->accessoryContainerView.hidden=YES; Flush(t); CheckSurfaces(t,1000);
+    t->layoutRepairEnabled=NO; TPReleaseTheater(t);
+    for(NSLayoutConstraint *constraint in nestedNative) Check(constraint.active,@"Nested hierarchy native constraint not restored");
 
     // When Twitch replaces a constraint set for chat, obsolete constraints must
     // expire rather than being resurrected by the next rotation.
@@ -116,7 +142,7 @@ static NSArray *RunFixtures(UIWindow *window) {
     [child removeFromSuperview];
     return @[@"video-controls-hit-area",@"30-chat-toggle-cycles",@"chat-hit-isolation",@"bounded-constraints",
         @"12-portrait-landscape-cycles",@"portrait-aspect-height",@"native-constraint-restoration",
-        @"obsolete-constraint-expiry",@"native-gesture-preservation"];
+        @"obsolete-constraint-expiry",@"native-gesture-preservation",@"intermediate-player-ancestor"];
 }
 
 @interface TPFixtureDelegate:UIResponder<UIApplicationDelegate>
