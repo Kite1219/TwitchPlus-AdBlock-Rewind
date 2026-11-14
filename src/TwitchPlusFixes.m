@@ -331,9 +331,11 @@ static void TPComplete(id self,SEL selector,NSURLSession *session,NSURLSessionTa
 
 // Layout implementation follows below; all UIKit work runs on the main thread.
 static NSHashTable *TPRoots;
-static char TPPinsKey,TPPinParentKey,TPCompactAppliedKey,TPVideoSizeKey;
+static char TPPinsKey,TPPinParentKey,TPDisabledPinsKey,TPMaskKey,TPCompactAppliedKey,TPVideoSizeKey,TPRefreshKey;
 static void (*TPOldFeedLayout)(id,SEL),(*TPOldVideoLayout)(id,SEL),(*TPOldRootLayout)(id,SEL),(*TPOldTheaterLayout)(id,SEL);
 static void (*TPOldDiscoveryLayout)(id,SEL);
+static void (*TPOldTheaterFrame)(id,SEL,CGRect),(*TPOldTheaterBounds)(id,SEL,CGRect);
+static void (*TPOldTheaterTransition)(id,SEL,CGSize,id);
 static NSString *TPGeometry=@"No feed layout observed yet";
 static NSString *TPTheaterGeometry=@"No theater layout observed yet";
 
@@ -386,38 +388,88 @@ static BOOL TPInternalLayoutItem(id item,UIView *view) {
     if([item isKindOfClass:[UILayoutGuide class]]) return TPDescendant(item,view);
     return item!=view && TPDescendant(item,view);
 }
-static void TPPlace(UIView *view,UIView *container,CGRect fitted,BOOL horizontalOnly) {
-    if(!tp_rect_valid(fitted)) return;
+static void TPReleasePlacement(UIView *view) {
+    NSArray *pins=objc_getAssociatedObject(view,&TPPinsKey);
+    if(!pins) return;
+    [NSLayoutConstraint deactivateConstraints:pins];
+    // Restore only constraints whose original owner still contains both items.
+    // A reused feed player may already have moved into a different hierarchy.
+    for(NSDictionary *entry in objc_getAssociatedObject(view,&TPDisabledPinsKey)) {
+        NSArray *owners=[entry[@"owner"] allObjects];
+        UIView *owner=owners.count?owners[0]:nil;
+        NSArray *constraints=[entry[@"constraint"] allObjects];
+        NSLayoutConstraint *constraint=constraints.count?constraints[0]:nil;
+        if(owner && TPDescendant(constraint.firstItem,owner) &&
+           (!constraint.secondItem || TPDescendant(constraint.secondItem,owner))) constraint.active=YES;
+    }
+    view.translatesAutoresizingMaskIntoConstraints=[objc_getAssociatedObject(view,&TPMaskKey) boolValue];
+    objc_setAssociatedObject(view,&TPPinsKey,nil,1);
+    objc_setAssociatedObject(view,&TPPinParentKey,nil,1);
+    objc_setAssociatedObject(view,&TPDisabledPinsKey,nil,1);
+    objc_setAssociatedObject(view,&TPMaskKey,nil,1);
+}
+static NSArray *TPPreparePlacement(UIView *view,UIView *container,BOOL horizontalOnly) {
     NSArray *pins=objc_getAssociatedObject(view,&TPPinsKey);
     NSHashTable *parents=objc_getAssociatedObject(view,&TPPinParentKey);
     NSArray *liveParents=parents.allObjects;
     UIView *previous=liveParents.count?liveParents[0]:nil;
-    if(previous!=container && pins) { [NSLayoutConstraint deactivateConstraints:pins]; pins=nil; }
+    if(pins && (previous!=container || pins.count!=(horizontalOnly?2U:4U))) {
+        TPReleasePlacement(view); pins=nil;
+    }
+    NSMutableArray *disabled=objc_getAssociatedObject(view,&TPDisabledPinsKey);
+    if(!disabled) {
+        disabled=[NSMutableArray array];
+        objc_setAssociatedObject(view,&TPDisabledPinsKey,disabled,1);
+        objc_setAssociatedObject(view,&TPMaskKey,@(view.translatesAutoresizingMaskIntoConstraints),1);
+    }
+    for(NSDictionary *entry in [disabled copy])
+        if(![[entry[@"constraint"] allObjects] count]) [disabled removeObject:entry];
     for(UIView *owner=view;owner;owner=owner.superview) {
         // Snapshot because deactivation changes the owning view's collection.
         NSArray *constraints=[owner.constraints copy];
         for(NSLayoutConstraint *constraint in constraints) {
-            if([pins containsObject:constraint]) continue;
+            if([constraint.identifier hasPrefix:@"TwitchPlus."]) continue;
             id first=constraint.firstItem,second=constraint.secondItem;
             if(first!=view && second!=view) continue;
             id other=first==view?second:first;
             NSInteger attribute=first==view?constraint.firstAttribute:constraint.secondAttribute;
             BOOL horizontal=(attribute==1 || attribute==2 || attribute==5 || attribute==6 || attribute==7 || attribute==9);
-            if((!horizontalOnly || horizontal) && !TPInternalLayoutItem(other,view)) constraint.active=NO;
+            if(constraint.active && (!horizontalOnly || horizontal) && !TPInternalLayoutItem(other,view)) {
+                BOOL saved=NO;
+                for(NSDictionary *entry in disabled)
+                    if([[entry[@"constraint"] allObjects] containsObject:constraint]) { saved=YES; break; }
+                if(!saved) {
+                    NSHashTable *weak=[NSHashTable weakObjectsHashTable]; [weak addObject:owner];
+                    // Twitch retains its CURRENT constraints in _activeConstraints
+                    // (feed: _playerViewConstraints). A replaced chat/orientation
+                    // set must be allowed to die instead of resurrected later.
+                    NSHashTable *constraintRef=[NSHashTable weakObjectsHashTable]; [constraintRef addObject:constraint];
+                    [disabled addObject:@{@"constraint":constraintRef,@"owner":weak}];
+                }
+                constraint.active=NO;
+            }
         }
         if(owner==container) break;
     }
+    return pins;
+}
+static void TPStorePins(UIView *view,UIView *container,NSArray *pins) {
+    view.translatesAutoresizingMaskIntoConstraints=NO;
+    for(NSLayoutConstraint *pin in pins) pin.identifier=@"TwitchPlus.playerViewport";
+    objc_setAssociatedObject(view,&TPPinsKey,pins,1);
+    NSHashTable *weak=[NSHashTable weakObjectsHashTable]; [weak addObject:container];
+    objc_setAssociatedObject(view,&TPPinParentKey,weak,1);
+}
+static void TPPlace(UIView *view,UIView *container,CGRect fitted,BOOL horizontalOnly) {
+    if(!tp_rect_valid(fitted)) return;
+    NSArray *pins=TPPreparePlacement(view,container,horizontalOnly);
     if(!pins) {
-        view.translatesAutoresizingMaskIntoConstraints=NO;
         NSLayoutConstraint *left=[view.centerXAnchor constraintEqualToAnchor:container.centerXAnchor constant:0];
         NSLayoutConstraint *width=[view.widthAnchor constraintEqualToConstant:fitted.size.width];
         if(horizontalOnly) pins=@[left,width];
         else pins=@[left,width,[view.centerYAnchor constraintEqualToAnchor:container.centerYAnchor constant:0],
                     [view.heightAnchor constraintEqualToConstant:fitted.size.height]];
-        objc_setAssociatedObject(view,&TPPinsKey,pins,1);
-        // Parent already retains its child. Avoid a child->parent retention cycle.
-        NSHashTable *weak=[NSHashTable weakObjectsHashTable]; [weak addObject:container];
-        objc_setAssociatedObject(view,&TPPinParentKey,weak,1);
+        TPStorePins(view,container,pins);
     }
     CGRect bounds=container.bounds;
     double values[4]={fitted.origin.x+fitted.size.width*.5-bounds.origin.x-bounds.size.width*.5,
@@ -426,6 +478,17 @@ static void TPPlace(UIView *view,UIView *container,CGRect fitted,BOOL horizontal
         NSLayoutConstraint *pin=pins[i]; if(pin.constant!=values[i]) pin.constant=values[i];
         if(!pin.active) pin.active=YES;
     }
+}
+static void TPMatch(UIView *view,UIView *reference,UIView *owner) {
+    NSArray *pins=TPPreparePlacement(view,owner,NO);
+    if(!pins) {
+        pins=@[[view.leadingAnchor constraintEqualToAnchor:reference.leadingAnchor constant:0],
+               [view.trailingAnchor constraintEqualToAnchor:reference.trailingAnchor constant:0],
+               [view.topAnchor constraintEqualToAnchor:reference.topAnchor constant:0],
+               [view.bottomAnchor constraintEqualToAnchor:reference.bottomAnchor constant:0]];
+        TPStorePins(view,owner,pins);
+    }
+    for(NSLayoutConstraint *pin in pins) if(!pin.active) pin.active=YES;
 }
 static UIView *TPFeedAncestor(UIView *view) {
     for(NSUInteger depth=0;view && depth<24;depth++,view=view.superview)
@@ -505,26 +568,104 @@ static void TPFeedLayout(UIView *self,SEL selector) {
     if([thumbnail isKindOfClass:[UIView class]]) thumbnail.contentMode=1;
 }
 static void TPVideoLayout(UIView *self,SEL selector) {
-    if(TPFeedAncestor(self)) TPAspect(self);
+    BOOL feed=TPFeedAncestor(self)!=nil;
+    if(!feed) TPReleasePlacement(self);
+    if(feed) TPAspect(self);
     TPOldVideoLayout(self,selector);
-    if(TPFeedAncestor(self)) TPAspect(self);
+    if(feed) TPAspect(self);
+}
+static BOOL TPVisibleIn(UIView *view,UIView *root) {
+    for(NSUInteger depth=0;view && depth<32;depth++,view=view.superview) {
+        if(view.hidden || view.alpha<.05) return NO;
+        if(view==root) return YES;
+    }
+    return NO;
+}
+static void TPReleaseTheater(UIView *theater) {
+    for(NSString *name in @[@"controlsView",@"controlsContainerView",@"videoPlayerStackView"]) {
+        UIView *view=TPField(theater,name.UTF8String);
+        if([view isKindOfClass:[UIView class]]) TPReleasePlacement(view);
+    }
+}
+static void TPFitTheater(UIView *self) {
+    UIView *stack=TPField(self,"videoPlayerStackView"),*video=TPField(self,"videoPlayerView");
+    UIView *container=TPField(self,"controlsContainerView"),*controls=TPField(self,"controlsView");
+    // Never render outside the native gesture owner's bounds. UIKit rejects
+    // touches outside an ancestor even when clipsToBounds is disabled.
+    if(!self.window || !TPWidePhone(self.window) || stack.superview!=self ||
+       container.superview!=self || !TPDescendant(controls,container) ||
+       ![stack isKindOfClass:[UIView class]] || ![container isKindOfClass:[UIView class]] ||
+       ![controls isKindOfClass:[UIView class]]) { TPReleaseTheater(self); return; }
+    CGRect native=[stack convertRect:stack.bounds toView:self];
+    CGRect window=[self.window convertRect:self.window.bounds toView:self];
+    UIView *chat=TPField(self,"accessoryContainerView");
+    CGRect chatBox={0};
+    if([chat isKindOfClass:[UIView class]] && TPVisibleIn(chat,self)) chatBox=[chat convertRect:chat.bounds toView:self];
+    CGRect area=tp_theater_viewport(self.bounds,window,native,chatBox,1);
+    if(!tp_rect_valid(area)) { TPReleaseTheater(self); return; }
+    TPPlace(stack,self,area,YES);
+    // Move the actual control hierarchy, including the native tap surface and
+    // the rewind timeline. Resizing the rendered video alone leaves dead space.
+    // Relative edges follow the final Auto Layout result, including the native
+    // portrait aspect-ratio height. No cached pre-rotation control dimensions.
+    TPMatch(container,stack,self);
+    if(controls.superview==container) {
+        TPMatch(controls,container,self);
+    }
+    if([video isKindOfClass:[UIView class]]) TPAspect(video);
+    TPCount(@"theaterViewportLayouts");
+    TPTheaterGeometry=[NSString stringWithFormat:@"Theater %.0fx%.0f; viewport (%.0f,%.0f) %.0fx%.0f; chat (%.0f,%.0f) %.0fx%.0f; controls %.0fx%.0f",
+        self.bounds.size.width,self.bounds.size.height,area.origin.x,area.origin.y,area.size.width,area.size.height,
+        chatBox.origin.x,chatBox.origin.y,chatBox.size.width,chatBox.size.height,controls.bounds.size.width,controls.bounds.size.height];
 }
 static void TPTheaterLayout(UIView *self,SEL selector) {
-    TPOldTheaterLayout(self,selector);
-    if(!TPWidePhone(self.window) || self.bounds.size.width<self.window.bounds.size.width*.85 ||
-       self.bounds.size.height<self.window.bounds.size.height*.3) return;
-    UIView *stack=TPField(self,"videoPlayerStackView"),*video=TPField(self,"videoPlayerView");
-    if(![stack isKindOfClass:[UIView class]] || !TPDescendant(stack,self)) return;
-    // Extend the video background across the reserved strip. Player controls keep
-    // their original safe-area constraints; this changes horizontal placement only.
-    CGRect full=[self.window convertRect:self.window.bounds toView:self];
-    full.origin.y=self.bounds.origin.y; full.size.height=self.bounds.size.height;
-    TPTheaterGeometry=[NSString stringWithFormat:@"Theater %.0fx%.0f; stack %.0fx%.0f; background width %.0f",
-        self.bounds.size.width,self.bounds.size.height,stack.bounds.size.width,stack.bounds.size.height,full.size.width];
-    self.clipsToBounds=NO;
-    TPPlace(stack,self,full,YES);
-    if([video isKindOfClass:[UIView class]]) TPAspect(video);
-    TPCount(@"theaterFullWidthLayouts");
+    TPOldTheaterLayout(self,selector); TPFitTheater(self);
+}
+static void TPRefreshTheater(UIView *theater,BOOL resetTaps) {
+    if(!theater.window) return;
+    [theater setNeedsLayout]; [theater layoutIfNeeded];
+    if(resetTaps) for(NSString *name in @[@"tapGesture",@"doubleTapGesture"]) {
+        UIGestureRecognizer *gesture=TPField(theater,name.UTF8String);
+        if([gesture isKindOfClass:[UIGestureRecognizer class]] && gesture.enabled) {
+            // Cancel only the native tap's stale transition state. Keep its
+            // original target, delegate, view and disabled/enabled preference.
+            gesture.enabled=NO; gesture.enabled=YES;
+        }
+    }
+    TPCount(@"theaterGeometryRefreshes");
+}
+static void TPQueueTheaterRefresh(UIView *theater) {
+    if(objc_getAssociatedObject(theater,&TPRefreshKey)) return;
+    objc_setAssociatedObject(theater,&TPRefreshKey,@YES,1);
+    __weak UIView *weak=theater;
+    dispatch_async(dispatch_get_main_queue(),^{
+        UIView *view=weak; if(!view) return;
+        objc_setAssociatedObject(view,&TPRefreshKey,nil,1); TPRefreshTheater(view,NO);
+    });
+}
+static void TPTheaterSetFrame(UIView *self,SEL selector,CGRect frame) {
+    CGRect old=self.frame;
+    BOOL changed=old.size.width!=frame.size.width || old.size.height!=frame.size.height;
+    if(changed) TPReleaseTheater(self);
+    TPOldTheaterFrame(self,selector,frame);
+    if(changed) TPQueueTheaterRefresh(self);
+}
+static void TPTheaterSetBounds(UIView *self,SEL selector,CGRect bounds) {
+    CGRect old=self.bounds;
+    BOOL changed=old.size.width!=bounds.size.width || old.size.height!=bounds.size.height;
+    if(changed) TPReleaseTheater(self);
+    TPOldTheaterBounds(self,selector,bounds);
+    if(changed) TPQueueTheaterRefresh(self);
+}
+static void TPTheaterTransition(UIViewController *self,SEL selector,CGSize size,id<UIViewControllerTransitionCoordinator> coordinator) {
+    UIView *theater=TPField(self,"$__lazy_storage_$_theaterView");
+    if(![theater isKindOfClass:[UIView class]]) theater=nil;
+    TPReleaseTheater(theater);
+    TPOldTheaterTransition(self,selector,size,coordinator);
+    __weak UIView *weak=theater;
+    [coordinator animateAlongsideTransition:nil completion:^(id<UIViewControllerTransitionCoordinatorContext> context) {
+        (void)context; TPRefreshTheater(weak,YES);
+    }];
 }
 static void TPDiscoveryLayout(UIViewController *self,SEL selector) {
     TPOldDiscoveryLayout(self,selector);
@@ -574,7 +715,7 @@ static TwitchPlusFixActions *TPActions;
 @implementation TwitchPlusFixActions
 - (void)diagnostics:(UIView *)sender {
     NSMutableString *text=[NSMutableString string];
-    [text appendString:@"TwitchPlus Beta 4 runtime diagnostics\n"];
+    [text appendString:@"TwitchPlus Beta 5 runtime diagnostics\n"];
     @synchronized(TPLock) {
         for(NSString *key in TPStats) [text appendFormat:@"%@: %@\n",key,TPStats[key]];
     }
@@ -640,6 +781,9 @@ static void TPInstall(NSUInteger attempt) {
     TPOldVideoLayout=(void *)TPHook("_TtC6Twitch15VideoPlayerView",@selector(layoutSubviews),(IMP)TPVideoLayout);
     TPOldRootLayout=(void *)TPHook("_TtC6Twitch18RootViewController",@selector(viewDidLayoutSubviews),(IMP)TPRootLayout);
     TPOldTheaterLayout=(void *)TPHook("_TtC6Twitch11TheaterView",@selector(layoutSubviews),(IMP)TPTheaterLayout);
+    TPOldTheaterFrame=(void *)TPHook("_TtC6Twitch11TheaterView",@selector(setFrame:),(IMP)TPTheaterSetFrame);
+    TPOldTheaterBounds=(void *)TPHook("_TtC6Twitch11TheaterView",@selector(setBounds:),(IMP)TPTheaterSetBounds);
+    TPOldTheaterTransition=(void *)TPHook("_TtC6Twitch21TheaterViewController",@selector(viewWillTransitionToSize:withTransitionCoordinator:),(IMP)TPTheaterTransition);
     TPOldDiscoveryLayout=(void *)TPHook("_TtC6Twitch30DiscoveryFeedTabViewController",@selector(viewDidLayoutSubviews),(IMP)TPDiscoveryLayout);
     @synchronized(TPLock) {
         TPStats[@"networkHooksInstalled"]=@(TPOldData && TPOldComplete);
@@ -647,9 +791,11 @@ static void TPInstall(NSUInteger attempt) {
         TPStats[@"videoHookInstalled"]=@(TPOldVideoLayout!=0);
         TPStats[@"rootHookInstalled"]=@(TPOldRootLayout!=0);
         TPStats[@"theaterHookInstalled"]=@(TPOldTheaterLayout!=0);
+        TPStats[@"theaterRotationHookInstalled"]=@(TPOldTheaterFrame && TPOldTheaterBounds && TPOldTheaterTransition);
     }
     for(UIWindow *window in [UIApplication sharedApplication].windows) TPExistingRoots(window.rootViewController,0);
 }
+#ifndef TP_LAYOUT_TEST
 __attribute__((constructor)) static void TPInitialize(void) {
     @autoreleasepool {
         TPLock=[NSObject new]; TPStats=[NSMutableDictionary dictionary];
@@ -664,3 +810,4 @@ __attribute__((constructor)) static void TPInitialize(void) {
         dispatch_async(dispatch_get_main_queue(),^{TPInstall(0);});
     }
 }
+#endif

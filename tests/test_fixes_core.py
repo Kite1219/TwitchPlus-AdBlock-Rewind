@@ -13,8 +13,44 @@ lib.tp_intersect_horizontal.argtypes=[Rect,Rect];lib.tp_intersect_horizontal.res
 lib.tp_rect_valid.argtypes=[Rect];lib.tp_rect_valid.restype=C.c_int
 lib.tp_buffer_fits.argtypes=[C.c_size_t,C.c_size_t,C.c_size_t];lib.tp_buffer_fits.restype=C.c_int
 lib.tp_hls_valid.argtypes=[C.c_char_p,C.c_size_t];lib.tp_hls_valid.restype=C.c_int
+lib.tp_theater_viewport.argtypes=[Rect,Rect,Rect,Rect,C.c_int];lib.tp_theater_viewport.restype=Rect
 
 class CoreTests(unittest.TestCase):
+    def viewport(self, chat=rect(0,0,0,0), native=rect(0,0,1167,900), bounds=rect(0,0,1280,900), window=rect(0,0,1280,900)):
+        return lib.tp_theater_viewport(bounds,window,native,chat,1)
+
+    def test_theater_side_chat_reserves_space_before_aspect_fit(self):
+        area=self.viewport(rect(875,0,405,900))
+        video=lib.tp_aspect_fit(Size(1920,1080),area)
+        self.assertEqual(area.size.width,875)
+        self.assertAlmostEqual(video.size.height,492.1875)
+        self.assertLessEqual(video.origin.x+video.size.width,875)
+
+    def test_theater_repeated_chat_toggles_always_expand_from_current_bounds(self):
+        for _ in range(20):
+            narrow=self.viewport(rect(875,0,405,900))
+            full=self.viewport(native=narrow)
+            self.assertEqual(narrow.size.width,875)
+            self.assertEqual(full.size.width,1280)
+
+    def test_theater_does_not_render_outside_native_touch_owner(self):
+        area=self.viewport(bounds=rect(0,0,1167,900),window=rect(0,0,1280,900))
+        self.assertEqual(area.size.width,1167)
+
+    def test_theater_chat_below_portrait_video_does_not_reduce_width(self):
+        area=self.viewport(rect(0,800,900,480),native=rect(0,110,640,360),bounds=rect(0,0,900,1280),window=rect(0,0,900,1280))
+        self.assertEqual(area.size.width,900)
+        self.assertEqual(area.origin.y,110)
+
+    def test_theater_left_chat_and_window_clipping_use_converted_coordinates(self):
+        area=self.viewport(rect(20,0,300,900),window=rect(20,0,1200,900))
+        self.assertEqual(area.origin.x,320)
+        self.assertEqual(area.size.width,900)
+
+    def test_theater_hidden_offscreen_or_floating_chat_does_not_reserve_width(self):
+        for chat in (rect(0,0,0,0),rect(1280,0,405,900),rect(875,1000,405,900),rect(400,200,300,200)):
+            self.assertEqual(self.viewport(chat).size.width,1280)
+
     def test_sidebar_clipping_far_above_card_reduces_viewport(self):
         area=rect(0,0,1280,700)
         for ancestor in (rect(0,0,1280,900),rect(448,0,832,900),rect(0,0,1280,900)):

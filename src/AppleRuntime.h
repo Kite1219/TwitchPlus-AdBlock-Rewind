@@ -245,6 +245,7 @@ __attribute__((objc_root_class)) @interface NSObject
 - (NSLayoutConstraint *)constraintEqualToConstant:(double)constant;
 @end
 @interface NSLayoutConstraint:NSObject
+@property(copy) NSString *identifier;
 @property double constant;
 @property(getter=isActive) BOOL active;
 @property(readonly) id firstItem,secondItem;
@@ -307,6 +308,13 @@ __attribute__((objc_root_class)) @interface NSObject
 @end
 @interface UISwitch:UIControl
 @property(getter=isOn) BOOL on;
+@end
+@interface UIGestureRecognizer:NSObject
+@property(getter=isEnabled) BOOL enabled;
+@end
+@protocol UIViewControllerTransitionCoordinatorContext @end
+@protocol UIViewControllerTransitionCoordinator
+- (BOOL)animateAlongsideTransition:(void (^)(id<UIViewControllerTransitionCoordinatorContext>))animation completion:(void (^)(id<UIViewControllerTransitionCoordinatorContext>))completion;
 @end
 @interface UIScrollView:UIView
 @property double zoomScale;

@@ -13,5 +13,6 @@ int tp_hls_valid(const char *text, size_t length);
 int tp_buffer_fits(size_t current, size_t incoming, size_t limit);
 CGRect tp_intersect_horizontal(CGRect current, CGRect clip);
 CGRect tp_aspect_fit(CGSize video, CGRect available);
+CGRect tp_theater_viewport(CGRect bounds, CGRect window, CGRect nativePlayer, CGRect chat, int expand);
 int tp_rect_valid(CGRect rect);
 #endif
