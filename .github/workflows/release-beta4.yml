@@ -1,0 +1,89 @@
+name: Build v1.5 Beta 4 IPA
+on:
+  push:
+    branches: [release/v1.5-beta.4]
+    paths:
+      - .github/workflows/release-beta4.yml
+      - src/**
+      - tools/build-fixes-*.sh
+      - tools/embed-playlist-engine.py
+      - tools/package-rewind-update.py
+      - tests/**
+permissions:
+  contents: read
+jobs:
+  apple-module:
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build shipping filter with Apple's SDK
+        run: bash tools/build-fixes-macos.sh
+      - name: Test embedded engine
+        run: |
+          node tests/playlist-upstream.test.js
+          node tests/playlist-native.test.js
+      - name: Inspect dependencies
+        run: xcrun otool -L build/TwitchAdBlock.dylib
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apple-native-filter
+          path: |
+            build/TwitchAdBlock.dylib
+            build/apple-sdk-version.txt
+            build/xcode-version.txt
+          retention-days: 3
+  release:
+    needs: apple-module
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Download pinned compiler and base
+        run: |
+          curl -fL --retry 3 https://static.rust-lang.org/dist/2026-10-01/rustc-1.99.0-x86_64-unknown-linux-gnu.tar.xz -o /tmp/rustc.tar.xz
+          mkdir -p /tmp/compiler
+          tar -xJf /tmp/rustc.tar.xz -C /tmp/compiler
+          curl -fL --retry 3 https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.4/TwitchPlus-v1.4-AdBlock-Rewind-Duo-unsigned.ipa -o /tmp/base.ipa
+          printf '6d573ecfc6686bed9a15fc061b315cc19ead5f93faab7fc5594d23aa4f104665  /tmp/base.ipa\n' | sha256sum -c -
+      - name: Build rewind and test packaging
+        run: bash tools/build-rewind-linux.sh /tmp/compiler/rustc-1.99.0-x86_64-unknown-linux-gnu/rustc
+      - name: Test compiled geometry and body bounds
+        run: |
+          cc -shared -fPIC -O2 -Wall -Wextra -Werror src/TwitchPlusCore.c -o build/TwitchPlusCore-test.so
+          python3 tests/test_fixes_core.py
+      - uses: actions/download-artifact@v4
+        with:
+          name: apple-native-filter
+          path: build/apple-filter
+      - name: Package and verify
+        run: |
+          mkdir -p output
+          python3 tools/package-rewind-update.py --base /tmp/base.ipa --library build/NativeRewind.dylib --ad-library build/apple-filter/TwitchAdBlock.dylib --output output/TwitchPlus-v1.5-beta.4-native-playlist-Duo-unsigned.ipa
+          python3 - <<'PY'
+          import json,pathlib,hashlib
+          path=pathlib.Path('output/TwitchPlus-v1.5-beta.4-native-playlist-Duo-unsigned.validation.json')
+          report=json.loads(path.read_text())
+          report['fixesAppleSDK']=pathlib.Path('build/apple-filter/apple-sdk-version.txt').read_text().strip()
+          report['fixesXcode']=pathlib.Path('build/apple-filter/xcode-version.txt').read_text().strip()
+          report['fixesSha256']=hashlib.sha256(pathlib.Path('build/apple-filter/TwitchAdBlock.dylib').read_bytes()).hexdigest()
+          path.write_text(json.dumps(report,indent=2)+'\n')
+          PY
+          cp build/apple-filter/apple-sdk-version.txt output/
+          cp build/apple-filter/xcode-version.txt output/
+          git archive --format=zip --prefix=TwitchPlus-v1.5-beta.4/ --output output/TwitchPlus-v1.5-beta.4-sources.zip HEAD
+          cd output
+          sha256sum *.ipa *.zip *.json *.txt > SHA256SUMS.txt
+      - name: Publish prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v1.5-beta.4 --draft --prerelease --target "$GITHUB_SHA" --title 'TwitchPlus v1.5 Beta 4 — Native Playlist Filter & Duo Navigation' --notes-file RELEASE-v1.5-beta.4.md
+          gh release upload v1.5-beta.4 output/*
+          gh release edit v1.5-beta.4 --draft=false --prerelease --latest=false

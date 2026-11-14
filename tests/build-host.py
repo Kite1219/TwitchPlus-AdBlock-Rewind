@@ -1,14 +1,7 @@
 from pathlib import Path
 import re
 r=Path(__file__).resolve().parent;s=(r.parent/'src/NativeRewind.rs').read_text();s=re.sub(r'#\[used\]#\[unsafe\(link_section="__DATA,__mod_init_func"\)\]\s*static INITIALIZE:[^;]+;','',s)
-# Substitute only the raw Objective-C ivar memory boundary in host builds.
-# Production layout and recovery policies remain the compiled code under test.
-a=s.index('unsafe fn field(');b=s.index('unsafe fn weak(',a)
-s=s[:a]+'unsafe fn field(o:Id,name:*const u8)->Id{unsafe{msg(o,s(b"hostField\\0" as *const u8),str(name),0 as Id,0 as Id)}}\n'+s[b:]
-a=s.index('unsafe fn set_native_flag(');b=s.index('fn aspect_fit(',a)
-s=s[:a]+'''unsafe fn set_native_flag(o:Id,name:*const u8,v:bool){unsafe{msg(o,s(b"hostFlag\\0" as *const u8),str(name),v as usize as Id,0 as Id);}}
-unsafe fn native_size(o:Id,_:*const u8)->Size{unsafe{Size{width:double(o,s(b"videoWidth\\0" as *const u8)),height:double(o,s(b"videoHeight\\0" as *const u8))}}}
-'''+s[b:]
+# Rewind policies compile unchanged. The new response engine is tested separately.
 s=re.sub(r'#\[link_name="objc_msgSend"\]fn (\w+)',lambda m:'#[link_name="host_'+m[1]+'"]fn '+m[1],s)
 s+='\n'
 for i in range(9):s+=f'static mut H{i}:Id=0 as Id;\n'
@@ -75,20 +68,6 @@ s+='#[unsafe(no_mangle)]pub unsafe extern "C" fn test_find(v:Id)->Id{unsafe{find
 s+='#[unsafe(no_mangle)]pub unsafe extern "C" fn test_auto()->bool{unsafe{auto_enabled()}}\n'
 s+='#[unsafe(no_mangle)]pub unsafe extern "C" fn test_save_auto(v:bool){unsafe{save_auto(v);}}\n'
 s+='#[unsafe(no_mangle)]pub unsafe extern "C" fn test_settings_load(v:Id){unsafe{settings_load(v,0 as Id);}}\n'
-s+='#[unsafe(no_mangle)]pub unsafe extern "C" fn test_configure_tabs(v:Id){unsafe{configure_tabs(v);}}\n'
-s+='#[unsafe(no_mangle)]pub unsafe extern "C" fn test_fit_view(v:Id){unsafe{feed_viewport_fit(v);}}\n'
-s+='#[unsafe(no_mangle)]pub unsafe extern "C" fn test_video_fit(v:Id){unsafe{feed_video_fit(v);}}\n'
-s+='#[unsafe(no_mangle)]pub unsafe extern "C" fn test_fit_pins(v:Id)->Id{unsafe{assoc(v,&raw const FIT_CONSTRAINTS_KEY)}}\n'
-s+='#[unsafe(no_mangle)]pub unsafe extern "C" fn test_normalize(v:Id){unsafe{normalize_toolbar(v);}}\n'
-s+='#[unsafe(no_mangle)]pub unsafe extern "C" fn test_relay(v:Id){unsafe{relay_toolbar(0 as Id,0 as Id,v);}}\n'
-s+='#[unsafe(no_mangle)]pub unsafe extern "C" fn test_fit(i:usize,vw:f64,vh:f64,w:f64,h:f64)->f64{let r=aspect_fit(Size{width:vw,height:vh},Rect{origin:Point{x:0.0,y:0.0},size:Size{width:w,height:h}});if i==0{return r.origin.x;}if i==1{return r.origin.y;}if i==2{return r.size.width;}r.size.height}\n'
-s+='#[unsafe(no_mangle)]pub unsafe extern "C" fn test_playlist_ads(t:Id)->bool{unsafe{playlist_has_ads(t)}}\n'
-s+='#[unsafe(no_mangle)]pub unsafe extern "C" fn test_playlist_valid(t:Id)->bool{unsafe{playlist_valid(t)}}\n'
-s+='#[unsafe(no_mangle)]pub unsafe extern "C" fn test_variant(t:Id,u:Id)->Id{unsafe{first_video_variant(t,u)}}\n'
-s+='#[unsafe(no_mangle)]pub unsafe extern "C" fn test_hls_url(u:Id)->bool{unsafe{hls_url_allowed(u)}}\n'
 s+='#[unsafe(no_mangle)]pub unsafe extern "C" fn test_ad_enabled()->bool{unsafe{ad_recovery_enabled()}}\n'
 s+='#[unsafe(no_mangle)]pub unsafe extern "C" fn test_save_ad(v:bool){unsafe{save_ad_recovery(v);}}\n'
-s+='#[unsafe(no_mangle)]pub unsafe extern "C" fn test_update_ad(v:Id){unsafe{update_ad_recovery(v);}}\n'
-s+='#[unsafe(no_mangle)]pub unsafe extern "C" fn test_apply_ad(v:Id){unsafe{apply_ad_recovery(v);}}\n'
-s+='#[unsafe(no_mangle)]pub unsafe extern "C" fn test_fetch_ad(v:Id){unsafe{fetch_ad_recovery(v);}}\n'
 (r/'NativeRewind-host.rs').write_text(s)

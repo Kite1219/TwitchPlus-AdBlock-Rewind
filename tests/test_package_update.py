@@ -1,6 +1,12 @@
 import importlib.util
 import struct
 import unittest
+import json
+import plistlib
+import subprocess
+import sys
+import tempfile
+import zipfile
 from pathlib import Path
 spec = importlib.util.spec_from_file_location('packager', Path(__file__).parents[1]/'tools/package-rewind-update.py')
 m = importlib.util.module_from_spec(spec)
@@ -29,5 +35,40 @@ class PackagingTests(unittest.TestCase):
     def test_rejects_bad_load_command(self):
         original=bytearray(binary());struct.pack_into('<I',original,36,4)
         with self.assertRaises(ValueError):m.compat_sdk(original)
+
+    def test_two_library_update_preserves_app_and_resources(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);base=root/'base.ipa';rewind=root/'rewind.dylib';ad=root/'ad.dylib';output=root/'new.ipa'
+            before={'Payload/Twitch.app/Info.plist':plistlib.dumps({'DTSDKName':'iphoneos27.1'}),
+                    'Payload/Twitch.app/Twitch':binary(),
+                    'Payload/Twitch.app/Frameworks/NativeRewind.dylib':binary()+b'OLD-REWIND',
+                    'Payload/Twitch.app/Frameworks/TwitchAdBlock.dylib':binary()+b'OLD-ADBLOCK',
+                    'Payload/Twitch.app/Assets.car':b'KEEP-ASSETS'}
+            with zipfile.ZipFile(base,'w') as archive:
+                for name,data in before.items():archive.writestr(name,data)
+            rewind.write_bytes(binary()+b'NEW-REWIND');ad.write_bytes(binary()+b'NEW-FILTER')
+            result=subprocess.run([sys.executable,str(Path(m.__file__)), '--base',str(base),'--library',str(rewind),
+                                   '--ad-library',str(ad),'--output',str(output)],capture_output=True,text=True)
+            self.assertEqual(result.returncode,0,result.stderr)
+            report=json.loads(output.with_suffix('.validation.json').read_text())
+            self.assertEqual(report['adBlockImplementation'],'native-response-filter')
+            self.assertEqual(len(report['changedMembers']),2)
+            with zipfile.ZipFile(output) as archive:
+                self.assertEqual(archive.testzip(),None)
+                for name in ('Payload/Twitch.app/Twitch','Payload/Twitch.app/Info.plist','Payload/Twitch.app/Assets.car'):
+                    self.assertEqual(archive.read(name),before[name])
+                self.assertEqual(archive.read('Payload/Twitch.app/Frameworks/TwitchAdBlock.dylib'),ad.read_bytes())
+
+    def test_missing_legacy_ad_library_cannot_silently_drop_replacement(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);base=root/'base.ipa';library=root/'lib.dylib'
+            library.write_bytes(binary())
+            with zipfile.ZipFile(base,'w') as archive:
+                archive.writestr('Payload/Twitch.app/Frameworks/NativeRewind.dylib',binary())
+                archive.writestr('Payload/Twitch.app/Info.plist',plistlib.dumps({}))
+            result=subprocess.run([sys.executable,str(Path(m.__file__)), '--base',str(base),'--library',str(library),
+                                   '--ad-library',str(library),'--output',str(root/'new.ipa')],capture_output=True,text=True)
+            self.assertNotEqual(result.returncode,0)
+            self.assertFalse((root/'new.ipa').exists())
 
 if __name__=='__main__':unittest.main(verbosity=2)

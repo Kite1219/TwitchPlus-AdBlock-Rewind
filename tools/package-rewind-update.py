@@ -35,6 +35,7 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument('--base', type=Path, required=True)
     p.add_argument('--library', type=Path, required=True)
+    p.add_argument('--ad-library', type=Path, help='Replace the legacy blocker with the native response filter')
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--duo-compatibility', action='store_true')
     args = p.parse_args()
@@ -48,8 +49,13 @@ def main():
     hashes = {}
     app_sdk = None
     replacements = {name: data}
+    if args.ad_library:
+        blocker=args.ad_library.read_bytes()
+        if blocker[:8] != bytes.fromhex('cffaedfe0c000001'):
+            raise ValueError('Expected ARM64 Mach-O ad filter library')
+        replacements['Payload/Twitch.app/Frameworks/TwitchAdBlock.dylib']=blocker
     with zipfile.ZipFile(args.base) as src:
-        if len(src.namelist()) != len(set(src.namelist())) or name not in src.namelist():
+        if len(src.namelist()) != len(set(src.namelist())) or not set(replacements).issubset(src.namelist()):
             raise ValueError('Expected TwitchPlus archive without duplicate members')
         app_sdk = plistlib.loads(src.read('Payload/Twitch.app/Info.plist')).get('DTSDKName')
         if args.duo_compatibility:
@@ -76,7 +82,8 @@ def main():
     assert sha(args.base.read_bytes()) == before
     report = {'baseSha256': before, 'outputSha256': sha(args.output.read_bytes()),
               'bytes': args.output.stat().st_size, 'applicationSDK': 'iphoneos27.0' if args.duo_compatibility else app_sdk, 'changedMembers': list(replacements), 'duoCompatibilitySDK': '27.0' if args.duo_compatibility else None,
-              'allOtherMembersByteIdentical': True, 'zipCRC': 'passed', 'deviceTested': False}
+              'allOtherMembersByteIdentical': True, 'zipCRC': 'passed', 'deviceTested': False,
+              'adBlockImplementation': 'native-response-filter' if args.ad_library else 'base-component'}
     args.output.with_suffix('.validation.json').write_text(json.dumps(report, indent=2)+'\n')
     print(json.dumps(report, indent=2))
 

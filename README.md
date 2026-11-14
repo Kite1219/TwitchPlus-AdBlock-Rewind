@@ -18,6 +18,12 @@ Go back to a moment you missed, skip in ten-second steps, and return to LIVE—all
 
 [Download Twitch IPA Tester](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/tag/ipa-tester-v1.0.0) to check a package locally, or [run it on GitHub](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/actions/workflows/test-ipa.yml). It produces an HTML / JSON report and a device checklist for the sidebar, toolbar, rewind and ad recovery. See [IPA-TESTER.md](IPA-TESTER.md). Package checks do not execute iOS or certify ad blocking.
 
+## Current test build: v1.5 Beta 4
+
+[Download the Beta 4 IPA](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.4/TwitchPlus-v1.5-beta.4-native-playlist-Duo-unsigned.ipa) | [Changes, limitations and runtime diagnostics](BETA4.md)
+
+Beta 4 replaces the blocker with native playlist-response filtering and changes wide-phone navigation. It is an unsigned prerelease. Open Rewind Settings to check that it says **Beta 4**. Actual Duo rendering and on-device ad-break effectiveness still require testing.
+
 ## Download
 
 ### [Download the latest IPA](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.2.2-beta.6/TwitchPlus-1.2.2-Beta6-unsigned.ipa)
