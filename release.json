@@ -1,11 +1,22 @@
 {
-  "release": "TwitchPlus 1.2.2 Beta 6 | Ad Block + Live Rewind",
-  "sha256": "8637e0461135b4636ace57376d187b395dffe6512e9fa9a0cfa209fb4267a181",
-  "bytes": 152402598,
-  "hostTestsPassed": 35,
+  "release": "TwitchPlus v1.5 Beta 5 | Player Layout & Rotation",
+  "tag": "v1.5-beta.5",
+  "commit": "179e0c90f795c70523b4407358a42989f2b3af44",
+  "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.5/TwitchPlus-v1.5-beta.5-player-layout-Duo-unsigned.ipa",
+  "sha256": "4696b3c3b7026cc52332a51f56900d699fed3ce2b133a7ada4d78ee819eeb07a",
+  "bytes": 152346319,
+  "hostTestsPassed": 66,
+  "compiledCoreTestsPassed": 14,
+  "packagingTestsPassed": 7,
+  "playlistTestsPassed": 30,
+  "preservationTestsPassed": 3,
+  "uiKitFixtureChecksPassed": 10,
+  "deviceTested": false,
   "devicePerformanceMeasured": false,
+  "adFilterLogicUnchangedFrom": "v1.5-beta.4",
   "homeScreenName": "Twitch",
   "baseVersion": "30.7",
   "minimumOS": "16.4",
-  "releaseStatus": "beta"
+  "releaseStatus": "beta",
+  "buildRun": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/actions/runs/43651416338"
 }
