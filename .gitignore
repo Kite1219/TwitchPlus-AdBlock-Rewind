@@ -10,3 +10,5 @@ build/
 .env
 
 tests/NativeRewind-host.rs
+ipa-test-results/
+*-test-results/
