@@ -1,4 +1,4 @@
-**Current version:** Beta 2 makes automatic rewind optional and OFF by default. Open Rewind Settings using the sliders button at the left of the purple timeline. See [BETA2.md](BETA2.md). The earlier always-on behavior below describes Beta 1.
+**Current version:** Beta 3 keeps automatic rewind optional and OFF by default, and adds independent live ad recovery. Open Rewind Settings using the sliders button at the left of the purple timeline. See [BETA3.md](BETA3.md). Older behavior below describes Beta 1.
 
 # Experimental automatic rewind
 

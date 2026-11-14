@@ -108,26 +108,6 @@ static mut MAIN:Id=0 as Id;static mut TARGET:Id=0 as Id;static mut ROWS:Id=0 as 
 static mut OLD_TAB_LOAD:Id=0 as Id;
 static mut OLD_LOAD:Id=0 as Id;static mut OLD_SOURCE:Id=0 as Id;static mut OLD_LAYOUT:Id=0 as Id;
 static DOT_KEY:u8=0;static CLEAR_KEY:u8=0;static TRACKING_KEY:u8=0;static OPTIONS_KEY:u8=0;static STATE_KEY:u8=0;static INTERNAL_KEY:u8=0;static ROW_KEY:u8=0;static PLAYER_KEY:u8=0;static PAD_LEFT_KEY:u8=0;static PAD_RIGHT_KEY:u8=0;static BOTTOM_KEY:u8=0;static SKIP_LEFT_KEY:u8=0;static SKIP_RIGHT_KEY:u8=0;static GEOMETRY_VISIBLE_KEY:u8=0;static BADGE_KEY:u8=0;static BACK_KEY:u8=0;static FORWARD_KEY:u8=0;static SLIDER_KEY:u8=0;static LABEL_KEY:u8=0;static LIVE_KEY:u8=0;
-// SDK metadata enables vertical bars, but this Twitch version predates them.
-// UIVerticalBarBehaviorDisabled = 1 (UIKit public header).
-unsafe extern "C" fn horizontal_bars(_:Id,_:Sel)->i64{1}
-unsafe extern "C" fn bar_preference_owner(_:Id,_:Sel)->Id{0 as Id}
-unsafe fn install_horizontal_bars(c:Id){unsafe{
- if c==0 as Id{return;}
- let base=cls(b"UIViewController\0" as *const u8);
- let preferred=s(b"preferredVerticalBarBehavior\0" as *const u8);
- let child=s(b"childViewControllerForPreferredVerticalBarBehavior\0" as *const u8);
- let pm=class_getInstanceMethod(base,preferred);let cm=class_getInstanceMethod(base,child);
- if pm==0 as Id||cm==0 as Id{return;}
- // addMethod leaves any existing class implementation intact.
- class_addMethod(c,preferred,horizontal_bars as Id,method_getTypeEncoding(pm));
- class_addMethod(c,child,bar_preference_owner as Id,method_getTypeEncoding(cm));
-}}
-unsafe fn initialize_duo_bars(){unsafe{
- install_horizontal_bars(cls(b"_TtC6Twitch16TabBarController\0" as *const u8));
- install_horizontal_bars(cls(b"_TtC6Twitch21TheaterViewController\0" as *const u8));
- install_horizontal_bars(cls(b"_TtC6Twitch30TheaterContainerViewController\0" as *const u8));
-}}
 unsafe fn auto_enabled()->bool{unsafe{
  let defaults=m0(cls(b"NSUserDefaults\0" as *const u8),s(b"standardUserDefaults\0" as *const u8));
  b1(defaults,s(b"boolForKey:\0" as *const u8),str(b"TwitchPlusAutomaticRewindEnabled\0" as *const u8))
@@ -151,6 +131,9 @@ unsafe extern "C" fn settings_load(o:Id,_:Sel){unsafe{
  let row=m0(cls(b"UIStackView\0" as *const u8),s(b"new\0" as *const u8));mu(row,s(b"setAxis:\0" as *const u8),0);mu(row,s(b"setAlignment:\0" as *const u8),3);md(row,s(b"setSpacing:\0" as *const u8),12.0);let label=settings_label(b"Automatic rewind (experimental)\0" as *const u8);m1(row,s(b"addArrangedSubview:\0" as *const u8),label);release(label);
  let toggle=m0(cls(b"UISwitch\0" as *const u8),s(b"new\0" as *const u8));mb(toggle,s(b"setOn:\0" as *const u8),auto_enabled());m1(toggle,s(b"setAccessibilityLabel:\0" as *const u8),str(b"Automatic rewind\0" as *const u8));action(toggle,s(b"addTarget:action:forControlEvents:\0" as *const u8),TARGET,s(b"toggleAuto:\0" as *const u8),4096);m1(row,s(b"addArrangedSubview:\0" as *const u8),toggle);m1(stack,s(b"addArrangedSubview:\0" as *const u8),row);release(toggle);release(row);
  let explanation=settings_label(b"Start one second before the available recording ends. This may avoid some live ads, but is not guaranteed and may add more delay. An accessible ongoing recording is required.\n\nOff by default. Changes apply when you next open a stream. Turning this off cancels any waiting automatic switch. Tap LIVE to leave an existing replay. Manual rewind always remains available.\0" as *const u8);m1(stack,s(b"addArrangedSubview:\0" as *const u8),explanation);release(explanation);
+ let adrow=m0(cls(b"UIStackView\0" as *const u8),s(b"new\0" as *const u8));mu(adrow,s(b"setAxis:\0" as *const u8),0);mu(adrow,s(b"setAlignment:\0" as *const u8),3);md(adrow,s(b"setSpacing:\0" as *const u8),12.0);let adlabel=settings_label(b"Live ad recovery (experimental)\0" as *const u8);m1(adrow,s(b"addArrangedSubview:\0" as *const u8),adlabel);release(adlabel);
+ let adtoggle=m0(cls(b"UISwitch\0" as *const u8),s(b"new\0" as *const u8));mb(adtoggle,s(b"setOn:\0" as *const u8),ad_recovery_enabled());m1(adtoggle,s(b"setAccessibilityLabel:\0" as *const u8),str(b"Live ad recovery\0" as *const u8));action(adtoggle,s(b"addTarget:action:forControlEvents:\0" as *const u8),TARGET,s(b"toggleAdRecovery:\0" as *const u8),4096);m1(adrow,s(b"addArrangedSubview:\0" as *const u8),adtoggle);m1(stack,s(b"addArrangedSubview:\0" as *const u8),adrow);release(adtoggle);release(adrow);
+ let adhelp=settings_label(b"Checks live playlists for ads and tries another public live source. On by default; independent of automatic rewind. It can briefly buffer, may temporarily use a fixed quality, and cannot guarantee an ad-free source. If no clean source is available, normal playback continues. No account sign-in credentials are sent by this feature. Tap LIVE to restore the original source.\0" as *const u8);m1(stack,s(b"addArrangedSubview:\0" as *const u8),adhelp);release(adhelp);
  let done=mu(cls(b"UIButton\0" as *const u8),s(b"buttonWithType:\0" as *const u8),1);title(done,s(b"setTitle:forState:\0" as *const u8),str(b"Done\0" as *const u8),0);action(done,s(b"addTarget:action:forControlEvents:\0" as *const u8),o,s(b"done:\0" as *const u8),64);mb(md(m0(done,s(b"heightAnchor\0" as *const u8)),s(b"constraintEqualToConstant:\0" as *const u8),44.0),s(b"setActive:\0" as *const u8),true);m1(stack,s(b"addArrangedSubview:\0" as *const u8),done);release(stack);release(scroll);
 }}
 unsafe extern "C" fn open_settings(_:Id,_:Sel,sender:Id){unsafe{
@@ -197,7 +180,7 @@ unsafe fn login_from_url(u:Id)->Id{unsafe{
 unsafe extern "C" fn load(o:Id,sel:Sel,u:Id,configuration:Id){unsafe{
  if assoc(o,&raw const INTERNAL_KEY)==0 as Id{
   let login=login_from_url(u);let state=dict();let old=assoc(o,&raw const STATE_KEY);let generation=value(old,b"generation\0" as *const u8)+1;
-  set(state,b"generation\0" as *const u8,number(generation));set(state,b"login\0" as *const u8,login);set(state,b"liveURL\0" as *const u8,u);set(state,b"configuration\0" as *const u8,configuration);put(o,&raw const STATE_KEY,state);if text_valid(login){set(state,b"autoRewind\0" as *const u8,number(if auto_enabled(){1}else{0}));m1(PLAYERS,s(b"addObject:\0" as *const u8),o);}schedule_prepare(o);
+  set(state,b"generation\0" as *const u8,number(generation));set(state,b"login\0" as *const u8,login);set(state,b"liveURL\0" as *const u8,u);set(state,b"configuration\0" as *const u8,configuration);put(o,&raw const STATE_KEY,state);if text_valid(login){set(state,b"autoRewind\0" as *const u8,number(if auto_enabled(){1}else{0}));set(state,b"adRecovery\0" as *const u8,number(1));m1(PLAYERS,s(b"addObject:\0" as *const u8),o);}schedule_prepare(o);
  }
  transmute::<Id,Load>(OLD_LOAD)(o,sel,u,configuration);
 }}
@@ -205,7 +188,7 @@ unsafe extern "C" fn load_source(o:Id,sel:Sel,source:Id,configuration:Id){unsafe
  if assoc(o,&raw const INTERNAL_KEY)==0 as Id{
   let mut u=m0(source,s(b"path\0" as *const u8));if kind(u,b"NSString\0" as *const u8){u=url(u);}
   let login=login_from_url(u);let state=dict();let old=assoc(o,&raw const STATE_KEY);
-  set(state,b"generation\0" as *const u8,number(value(old,b"generation\0" as *const u8)+1));set(state,b"login\0" as *const u8,login);set(state,b"liveURL\0" as *const u8,u);set(state,b"liveSource\0" as *const u8,source);set(state,b"configuration\0" as *const u8,configuration);put(o,&raw const STATE_KEY,state);if text_valid(login){set(state,b"autoRewind\0" as *const u8,number(if auto_enabled(){1}else{0}));m1(PLAYERS,s(b"addObject:\0" as *const u8),o);}schedule_prepare(o);
+  set(state,b"generation\0" as *const u8,number(value(old,b"generation\0" as *const u8)+1));set(state,b"login\0" as *const u8,login);set(state,b"liveURL\0" as *const u8,u);set(state,b"liveSource\0" as *const u8,source);set(state,b"configuration\0" as *const u8,configuration);put(o,&raw const STATE_KEY,state);if text_valid(login){set(state,b"autoRewind\0" as *const u8,number(if auto_enabled(){1}else{0}));set(state,b"adRecovery\0" as *const u8,number(1));m1(PLAYERS,s(b"addObject:\0" as *const u8),o);}schedule_prepare(o);
  }
  transmute::<Id,Load>(OLD_SOURCE)(o,sel,source,configuration);
 }}
@@ -214,6 +197,7 @@ unsafe fn switch_url(player:Id,u:Id,state:Id){unsafe{
 }}
 unsafe fn go_live(player:Id){unsafe{
  let state=assoc(player,&raw const STATE_KEY);let u=get(state,b"liveURL\0" as *const u8);if u==0 as Id{return;}
+ set(state,b"adActiveURL\0" as *const u8,0 as Id);set(state,b"adPollURL\0" as *const u8,0 as Id);set(state,b"adBusy\0" as *const u8,number(0));
  // Explicit LIVE and replay failure cancel the automatic switch for this load.
  set(state,b"autoRewind\0" as *const u8,number(0));
  set(state,b"generation\0" as *const u8,number(value(state,b"generation\0" as *const u8)+1));set(state,b"mode\0" as *const u8,number(0));set(state,b"pending\0" as *const u8,0 as Id);set(state,b"notice\0" as *const u8,0 as Id);set(state,b"cacheBusy\0" as *const u8,number(0));let source=get(state,b"liveSource\0" as *const u8);if source!=0 as Id{put(player,&raw const INTERNAL_KEY,number(1));transmute::<Id,Load>(OLD_SOURCE)(player,s(b"loadSource:configuration:\0" as *const u8),source,get(state,b"configuration\0" as *const u8));put(player,&raw const INTERNAL_KEY,0 as Id);m0(player,s(b"play\0" as *const u8));}else{switch_url(player,u,state);}
@@ -301,7 +285,7 @@ unsafe extern "C" fn scrub(_:Id,_:Sel,sender:Id){unsafe{
 }}
 unsafe extern "C" fn rewind(_:Id,_:Sel,sender:Id){unsafe{let player=sender_player(sender);let state=assoc(player,&raw const STATE_KEY);if value(state,b"mode\0" as *const u8)==2{let pending=get(state,b"pending\0" as *const u8);if pending!=0 as Id{let t=double(pending,s(b"doubleValue\0" as *const u8))-10.0;queue_seek(player,if t>0.0{t}else{0.0},0.12);}else{queue_seek(player,CMTimeGetSeconds(time(player,s(b"position\0" as *const u8)))-10.0,0.12);}}else{let end=timeline_end(player);if end>2.0{start_replay(player,if end>10.0{end-10.0}else{0.0});}else{prefetch(player);}}}}
 unsafe extern "C" fn forward(_:Id,_:Sel,sender:Id){unsafe{let player=sender_player(sender);let state=assoc(player,&raw const STATE_KEY);if value(state,b"mode\0" as *const u8)!=2{return;}let pending=get(state,b"pending\0" as *const u8);let target=if pending!=0 as Id{double(pending,s(b"doubleValue\0" as *const u8))+10.0}else{CMTimeGetSeconds(time(player,s(b"position\0" as *const u8)))+10.0};if target>=timeline_end(player)-2.0{go_live(player);}else{if pending!=0 as Id{queue_seek(player,target,0.12);}else{queue_seek(player,target,0.12);}}}}
-unsafe extern "C" fn live(_:Id,_:Sel,sender:Id){unsafe{let player=sender_player(sender);if value(assoc(player,&raw const STATE_KEY),b"mode\0" as *const u8)!=0{go_live(player);}}}
+unsafe extern "C" fn live(_:Id,_:Sel,sender:Id){unsafe{let player=sender_player(sender);if value(assoc(player,&raw const STATE_KEY),b"mode\0" as *const u8)!=0||get(assoc(player,&raw const STATE_KEY),b"adActiveURL\0" as *const u8)!=0 as Id{go_live(player);}}}
 unsafe fn find_player(view:Id,depth:usize)->Id{unsafe{
  if view==0 as Id||depth>10{return 0 as Id;}if kind(view,b"IVSPlayerView\0" as *const u8){let player=m0(view,s(b"player\0" as *const u8));if text_valid(get(assoc(player,&raw const STATE_KEY),b"login\0" as *const u8)){return player;}}
  let children=m0(view,s(b"subviews\0" as *const u8));let n=count(children,s(b"count\0" as *const u8));let mut i=0;let mut found=0 as Id;
@@ -383,7 +367,7 @@ unsafe fn attach(controls:Id){unsafe{
 unsafe extern "C" fn layout(o:Id,sel:Sel){unsafe{transmute::<Id,Zero>(OLD_LAYOUT)(o,sel);attach(o);}}
 // Process every loaded live player, even before controls have been displayed.
 unsafe fn update_playback(player:Id){unsafe{
- let state=assoc(player,&raw const STATE_KEY);promote_prepared(state);
+ let state=assoc(player,&raw const STATE_KEY);promote_prepared(state);update_ad_recovery(player);
  if !auto_enabled(){set(state,b"autoRewind\0" as *const u8,number(0));}
  if value(state,b"autoRewind\0" as *const u8)==1&&value(state,b"mode\0" as *const u8)==0&&get(state,b"cachedURL\0" as *const u8)!=0 as Id{
   let end=double(get(state,b"cachedDuration\0" as *const u8),s(b"doubleValue\0" as *const u8));
@@ -412,17 +396,258 @@ unsafe extern "C" fn tick(_:Id,_:Sel,_:Id){unsafe{
  }
 }}
 #[unsafe(no_mangle)]pub unsafe extern "C" fn native_rewind_initialize(){unsafe{
- initialize_duo_bars();
+ initialize_feed_layout();
  MAIN=dlsym(18446744073709551614usize as Id,b"_dispatch_main_q\0" as *const u8);let player=cls(b"IVSPlayer\0" as *const u8);let controls=cls(b"_TtC6Twitch25TheaterPlayerControlsView\0" as *const u8);
  if MAIN==0 as Id||player==0 as Id||controls==0 as Id||class_getInstanceMethod(player,s(b"load:configuration:\0" as *const u8))==0 as Id||class_getInstanceMethod(controls,s(b"layoutSubviews\0" as *const u8))==0 as Id{return;}
  let target=objc_allocateClassPair(cls(b"NSObject\0" as *const u8),b"TwitchNativeRewindActions\0" as *const u8,0);if target==0 as Id{return;}
- class_addMethod(target,s(b"preview:\0" as *const u8),preview as Id,b"v24@0:8@16\0" as *const u8);class_addMethod(target,s(b"scrub:\0" as *const u8),scrub as Id,b"v24@0:8@16\0" as *const u8);class_addMethod(target,s(b"rewind:\0" as *const u8),rewind as Id,b"v24@0:8@16\0" as *const u8);class_addMethod(target,s(b"forward:\0" as *const u8),forward as Id,b"v24@0:8@16\0" as *const u8);class_addMethod(target,s(b"live:\0" as *const u8),live as Id,b"v24@0:8@16\0" as *const u8);class_addMethod(target,s(b"tick:\0" as *const u8),tick as Id,b"v24@0:8@16\0" as *const u8);class_addMethod(target,s(b"openSettings:\0" as *const u8),open_settings as Id,b"v24@0:8@16\0" as *const u8);class_addMethod(target,s(b"toggleAuto:\0" as *const u8),toggle_auto as Id,b"v24@0:8@16\0" as *const u8);objc_registerClassPair(target);TARGET=m0(target,s(b"new\0" as *const u8));ROWS=retain(m0(cls(b"NSHashTable\0" as *const u8),s(b"weakObjectsHashTable\0" as *const u8)));
+ class_addMethod(target,s(b"preview:\0" as *const u8),preview as Id,b"v24@0:8@16\0" as *const u8);class_addMethod(target,s(b"scrub:\0" as *const u8),scrub as Id,b"v24@0:8@16\0" as *const u8);class_addMethod(target,s(b"rewind:\0" as *const u8),rewind as Id,b"v24@0:8@16\0" as *const u8);class_addMethod(target,s(b"forward:\0" as *const u8),forward as Id,b"v24@0:8@16\0" as *const u8);class_addMethod(target,s(b"live:\0" as *const u8),live as Id,b"v24@0:8@16\0" as *const u8);class_addMethod(target,s(b"tick:\0" as *const u8),tick as Id,b"v24@0:8@16\0" as *const u8);class_addMethod(target,s(b"openSettings:\0" as *const u8),open_settings as Id,b"v24@0:8@16\0" as *const u8);class_addMethod(target,s(b"relayToolbar:\0" as *const u8),relay_toolbar as Id,b"v24@0:8@16\0" as *const u8);class_addMethod(target,s(b"toggleAdRecovery:\0" as *const u8),toggle_ad_recovery as Id,b"v24@0:8@16\0" as *const u8);class_addMethod(target,s(b"toggleAuto:\0" as *const u8),toggle_auto as Id,b"v24@0:8@16\0" as *const u8);objc_registerClassPair(target);TARGET=m0(target,s(b"new\0" as *const u8));ROWS=retain(m0(cls(b"NSHashTable\0" as *const u8),s(b"weakObjectsHashTable\0" as *const u8)));
  let settings=objc_allocateClassPair(cls(b"UIViewController\0" as *const u8),b"TwitchPlusRewindSettings\0" as *const u8,0);if settings!=0 as Id{class_addMethod(settings,s(b"loadView\0" as *const u8),settings_load as Id,b"v16@0:8\0" as *const u8);class_addMethod(settings,s(b"done:\0" as *const u8),settings_done as Id,b"v24@0:8@16\0" as *const u8);objc_registerClassPair(settings);}
  let tabs=cls(b"_TtC6Twitch16TabBarController\0" as *const u8);if tabs!=0 as Id{OLD_TAB_LOAD=hook(tabs,s(b"viewDidLoad\0" as *const u8),tabs_loaded as Id);}
  PLAYERS=retain(m0(cls(b"NSHashTable\0" as *const u8),s(b"weakObjectsHashTable\0" as *const u8)));
  OLD_SOURCE=hook(player,s(b"loadSource:configuration:\0" as *const u8),load_source as Id);OLD_LOAD=hook(player,s(b"load:configuration:\0" as *const u8),load as Id);OLD_LAYOUT=hook(controls,s(b"layoutSubviews\0" as *const u8),layout as Id);
  timer(cls(b"NSTimer\0" as *const u8),s(b"scheduledTimerWithTimeInterval:target:selector:userInfo:repeats:\0" as *const u8),0.1,TARGET,s(b"tick:\0" as *const u8),0 as Id,true);
 }}
+// Independent native live-source recovery. No browser code, third-party proxy,
+// account OAuth headers, or fabricated entitlements are used here.
+type ExternalPlayback=unsafe extern "C" fn()->bool;
+unsafe fn ad_recovery_enabled()->bool{unsafe{
+ let defaults=m0(cls(b"NSUserDefaults\0" as *const u8),s(b"standardUserDefaults\0" as *const u8));let key=str(b"TwitchPlusNativeAdRecoveryEnabled\0" as *const u8);
+ let stored=m1(defaults,s(b"objectForKey:\0" as *const u8),key);stored==0 as Id||b1(defaults,s(b"boolForKey:\0" as *const u8),key)
+}}
+unsafe fn save_ad_recovery(enabled:bool){unsafe{
+ let defaults=m0(cls(b"NSUserDefaults\0" as *const u8),s(b"standardUserDefaults\0" as *const u8));set_bool(defaults,s(b"setBool:forKey:\0" as *const u8),enabled,str(b"TwitchPlusNativeAdRecoveryEnabled\0" as *const u8));
+}}
+unsafe extern "C" fn toggle_ad_recovery(_:Id,_:Sel,sender:Id){unsafe{save_ad_recovery(b0(sender,s(b"isOn\0" as *const u8)));}}
+unsafe fn external_playback()->bool{unsafe{
+ let symbol=dlsym(18446744073709551614usize as Id,b"twab_isExternalPlayback\0" as *const u8);if symbol==0 as Id{false}else{transmute::<Id,ExternalPlayback>(symbol)()}
+}}
+unsafe fn hls_url_allowed(u:Id)->bool{unsafe{
+ if !kind(u,b"NSURL\0" as *const u8)||!eq(m0(u,s(b"scheme\0" as *const u8)),str(b"https\0" as *const u8)){return false;}
+ let host=m0(u,s(b"host\0" as *const u8));eq(host,str(b"ttvnw.net\0" as *const u8))||b1(host,s(b"hasSuffix:\0" as *const u8),str(b".ttvnw.net\0" as *const u8))
+}}
+unsafe fn playlist_valid(text:Id)->bool{unsafe{text_valid(text)&&b1(text,s(b"hasPrefix:\0" as *const u8),str(b"#EXTM3U\0" as *const u8))}}
+unsafe fn playlist_has_ads(text:Id)->bool{unsafe{
+ // DATERANGE classes are checked on their own lines, never against bare words
+ // such as "ad" or "processing" that can occur in ordinary segment URLs.
+ let lines=m1(text,s(b"componentsSeparatedByString:\0" as *const u8),str(b"\n\0" as *const u8));let n=count(lines,s(b"count\0" as *const u8));let mut i=0;
+ while i<n{let line=mu(lines,s(b"objectAtIndex:\0" as *const u8),i);
+  if b1(line,s(b"hasPrefix:\0" as *const u8),str(b"#EXT-X-CUE-OUT\0" as *const u8)){return true;}
+  if b1(line,s(b"hasPrefix:\0" as *const u8),str(b"#EXT-X-DATERANGE:\0" as *const u8))&&(b1(line,s(b"containsString:\0" as *const u8),str(b"CLASS=\"twitch-stitched\0" as *const u8))||b1(line,s(b"containsString:\0" as *const u8),str(b"CLASS=\"twitch-maf-ad\0" as *const u8))){return true;}i=i+1;
+ }false
+}}
+unsafe fn hls_fetch(u:Id)->Id{unsafe{
+ if !hls_url_allowed(u){return 0 as Id;}
+ let req=m1(cls(b"NSMutableURLRequest\0" as *const u8),s(b"requestWithURL:\0" as *const u8),u);md(req,s(b"setTimeoutInterval:\0" as *const u8),4.0);mb(req,s(b"setHTTPShouldHandleCookies:\0" as *const u8),false);mu(req,s(b"setCachePolicy:\0" as *const u8),1);
+ let mut response=0 as Id;let mut error=0 as Id;let bytes=m3(cls(b"NSURLConnection\0" as *const u8),s(b"sendSynchronousRequest:returningResponse:error:\0" as *const u8),req,&raw mut response as Id,&raw mut error as Id);
+ if bytes==0 as Id||error!=0 as Id||count(response,s(b"statusCode\0" as *const u8))!=200||count(bytes,s(b"length\0" as *const u8))>1048576{return 0 as Id;}
+ let text=m2(m0(cls(b"NSString\0" as *const u8),s(b"alloc\0" as *const u8)),s(b"initWithData:encoding:\0" as *const u8),bytes,4 as Id);m0(text,s(b"autorelease\0" as *const u8));if playlist_valid(text){text}else{0 as Id}
+}}
+unsafe fn first_video_variant(text:Id,base:Id)->Id{unsafe{
+ let lines=m1(text,s(b"componentsSeparatedByString:\0" as *const u8),str(b"\n\0" as *const u8));let n=count(lines,s(b"count\0" as *const u8));let mut i=0;let mut wanted=false;
+ while i<n{let line=mu(lines,s(b"objectAtIndex:\0" as *const u8),i);
+  if b1(line,s(b"hasPrefix:\0" as *const u8),str(b"#EXT-X-STREAM-INF:\0" as *const u8)){wanted=b1(line,s(b"containsString:\0" as *const u8),str(b"RESOLUTION=\0" as *const u8));}
+  else if wanted&&text_valid(line)&&!b1(line,s(b"hasPrefix:\0" as *const u8),str(b"#\0" as *const u8)){
+   let clean=m1(line,s(b"stringByTrimmingCharactersInSet:\0" as *const u8),m0(cls(b"NSCharacterSet\0" as *const u8),s(b"whitespaceAndNewlineCharacterSet\0" as *const u8)));
+   let u=m0(m2(cls(b"NSURL\0" as *const u8),s(b"URLWithString:relativeToURL:\0" as *const u8),clean,base),s(b"absoluteURL\0" as *const u8));if hls_url_allowed(u){return u;}wanted=false;
+  }i=i+1;
+ }0 as Id
+}}
+unsafe fn probe_media(u:Id,job:Id)->Id{unsafe{
+ let text=hls_fetch(u);if text==0 as Id{return 0 as Id;}
+ if b1(text,s(b"containsString:\0" as *const u8),str(b"#EXT-X-STREAM-INF:\0" as *const u8)){
+  let variant=first_video_variant(text,u);if variant==0 as Id{return 0 as Id;}let media=hls_fetch(variant);
+  if media!=0 as Id&&b1(media,s(b"containsString:\0" as *const u8),str(b"#EXTINF:\0" as *const u8)){set(job,b"polledURL\0" as *const u8,variant);return media;}return 0 as Id;
+ }
+ if b1(text,s(b"containsString:\0" as *const u8),str(b"#EXTINF:\0" as *const u8)){set(job,b"polledURL\0" as *const u8,u);return text;}0 as Id
+}}
+unsafe fn recovery_master(login:Id,kind:Id)->Id{unsafe{
+ let vars=dict();set(vars,b"login\0" as *const u8,login);set(vars,b"kind\0" as *const u8,kind);
+ // Literal platform plus $kind avoids the old blocker's random-platform rewrite.
+ let result=request(b"query NativeAdRecoveryToken($login:String!,$kind:String!){streamPlaybackAccessToken(channelName:$login,params:{platform:\"web\",playerBackend:\"mediaplayer\",playerType:$kind}){signature value}}\0" as *const u8,vars);
+ let token=get(result,b"streamPlaybackAccessToken\0" as *const u8);let sig=get(token,b"signature\0" as *const u8);let value=get(token,b"value\0" as *const u8);if !text_valid(sig)||!text_valid(value){return 0 as Id;}
+ let parts=m0(cls(b"NSURLComponents\0" as *const u8),s(b"new\0" as *const u8));m1(parts,s(b"setScheme:\0" as *const u8),str(b"https\0" as *const u8));m1(parts,s(b"setHost:\0" as *const u8),str(b"usher.ttvnw.net\0" as *const u8));m1(parts,s(b"setPath:\0" as *const u8),append(append(str(b"/api/channel/hls/\0" as *const u8),login),str(b".m3u8\0" as *const u8)));
+ let items=m0(cls(b"NSMutableArray\0" as *const u8),s(b"array\0" as *const u8));query_item(items,b"sig\0" as *const u8,sig);query_item(items,b"token\0" as *const u8,value);query_item(items,b"allow_source\0" as *const u8,str(b"true\0" as *const u8));query_item(items,b"allow_audio_only\0" as *const u8,str(b"true\0" as *const u8));m1(parts,s(b"setQueryItems:\0" as *const u8),items);let u=retain(m0(parts,s(b"URL\0" as *const u8)));release(parts);m0(u,s(b"autorelease\0" as *const u8));u
+}}
+unsafe extern "C" fn fetch_ad_recovery(job:Id){unsafe{
+ let pool=m0(cls(b"NSAutoreleasePool\0" as *const u8),s(b"new\0" as *const u8));let media=probe_media(get(job,b"probeURL\0" as *const u8),job);
+ if media==0 as Id{set(job,b"failed\0" as *const u8,number(1));}
+ else if playlist_has_ads(media){
+  set(job,b"adDetected\0" as *const u8,number(1));let began=CFAbsoluteTimeGetCurrent();let mut i=0;
+  while i<3&&CFAbsoluteTimeGetCurrent()<began+12.0{
+   let kind=if i==0{str(b"site\0" as *const u8)}else{if i==1{str(b"popout\0" as *const u8)}else{str(b"mobile_web\0" as *const u8)}};
+   let candidate=recovery_master(get(job,b"login\0" as *const u8),kind);let result=dict();let playlist=if candidate!=0 as Id{probe_media(candidate,result)}else{0 as Id};
+   if playlist!=0 as Id&&!playlist_has_ads(playlist){set(job,b"cleanURL\0" as *const u8,get(result,b"polledURL\0" as *const u8));break;}i=i+1;
+  }
+ }
+ dispatch_async_f(MAIN,job,apply_ad_recovery);m0(pool,s(b"drain\0" as *const u8));
+}}
+unsafe fn recovery_playing(player:Id)->bool{unsafe{let state=count(player,s(b"state\0" as *const u8));state==2||state==3}}
+unsafe fn recovery_current(player:Id,job:Id)->bool{unsafe{
+ let state=assoc(player,&raw const STATE_KEY);player!=0 as Id&&value(state,b"generation\0" as *const u8)==value(job,b"generation\0" as *const u8)&&eq(get(state,b"login\0" as *const u8),get(job,b"login\0" as *const u8))
+}}
+unsafe extern "C" fn apply_ad_recovery(job:Id){unsafe{
+ let player=weak_get(get(job,b"player\0" as *const u8));let state=assoc(player,&raw const STATE_KEY);
+ if recovery_current(player,job){
+  set(state,b"adBusy\0" as *const u8,number(0));let now=CFAbsoluteTimeGetCurrent();set(state,b"adNextProbe\0" as *const u8,real(now+if value(job,b"failed\0" as *const u8)!=0{15.0}else{if value(job,b"adDetected\0" as *const u8)!=0{45.0}else{5.0}}));
+  set(state,b"adPollURL\0" as *const u8,if value(job,b"failed\0" as *const u8)!=0{0 as Id}else{get(job,b"polledURL\0" as *const u8)});
+  let clean=get(job,b"cleanURL\0" as *const u8);
+  if clean!=0 as Id&&hls_url_allowed(clean)&&ad_recovery_enabled()&&value(state,b"mode\0" as *const u8)==0&&recovery_playing(player)&&!external_playback(){
+   set(state,b"adActiveURL\0" as *const u8,clean);set(state,b"adPollURL\0" as *const u8,clean);switch_url(player,clean,state);
+  }
+ }release(job);
+}}
+unsafe fn update_ad_recovery(player:Id){unsafe{
+ let state=assoc(player,&raw const STATE_KEY);if value(state,b"adRecovery\0" as *const u8)!=1||value(state,b"mode\0" as *const u8)!=0{return;}
+ let active=get(state,b"adActiveURL\0" as *const u8);let now=CFAbsoluteTimeGetCurrent();
+ if active!=0 as Id&&(m0(player,s(b"error\0" as *const u8))!=0 as Id){
+  set(state,b"generation\0" as *const u8,number(value(state,b"generation\0" as *const u8)+1));set(state,b"cacheBusy\0" as *const u8,number(0));set(state,b"adBusy\0" as *const u8,number(0));set(state,b"adActiveURL\0" as *const u8,0 as Id);set(state,b"adPollURL\0" as *const u8,0 as Id);set(state,b"adNextProbe\0" as *const u8,real(now+60.0));switch_url(player,get(state,b"liveURL\0" as *const u8),state);return;
+ }
+ if !ad_recovery_enabled()||external_playback()||!recovery_playing(player)||value(state,b"adBusy\0" as *const u8)!=0||now<double(get(state,b"adNextProbe\0" as *const u8),s(b"doubleValue\0" as *const u8)){return;}
+ let u=get(state,b"adPollURL\0" as *const u8);let u=if u!=0 as Id{u}else{get(state,b"liveURL\0" as *const u8)};if !hls_url_allowed(u){return;}
+ set(state,b"adBusy\0" as *const u8,number(1));let job=dict();set(job,b"probeURL\0" as *const u8,u);set(job,b"login\0" as *const u8,get(state,b"login\0" as *const u8));set(job,b"generation\0" as *const u8,get(state,b"generation\0" as *const u8));set(job,b"player\0" as *const u8,weak(player));dispatch_async_f(dispatch_get_global_queue(0,0),retain(job),fetch_ad_recovery);
+}}
+
+// Feed viewport repair. These fields and their types were checked in Twitch 30.7's
+// Objective-C metadata and Swift field descriptors; offsets are looked up at runtime.
+static mut OLD_FEED_LAYOUT:Id=0 as Id;
+static mut OLD_VIDEO_LAYOUT:Id=0 as Id;
+static mut OLD_DISCOVERY_LAYOUT:Id=0 as Id;
+static FIT_CONSTRAINTS_KEY:u8=0;static FIT_PARENT_KEY:u8=0;
+static FIT_WIDTH_KEY:u8=0;static FIT_HEIGHT_KEY:u8=0;
+static TOOLBAR_ORIGINAL_KEY:u8=0;static TOOLBAR_MARKER_KEY:u8=0;
+unsafe fn set_native_flag(o:Id,name:*const u8,enabled:bool){unsafe{
+ if o==0 as Id{return;}let iv=class_getInstanceVariable(object_getClass(o),name);
+ if iv!=0 as Id{*((o as usize+ivar_getOffset(iv)) as *mut bool)=enabled;}
+}}
+unsafe fn native_size(o:Id,name:*const u8)->Size{unsafe{
+ if o==0 as Id{return Size{width:0.0,height:0.0};}let iv=class_getInstanceVariable(object_getClass(o),name);if iv==0 as Id{return Size{width:0.0,height:0.0};}*((o as usize+ivar_getOffset(iv)) as *const Size)
+}}
+fn aspect_fit(video:Size,area:Rect)->Rect{
+ if !(video.width>0.0&&video.width<100000.0&&video.height>0.0&&video.height<100000.0&&valid_rect(area)){return Rect{origin:area.origin,size:Size{width:0.0,height:0.0}};}
+ let sx=area.size.width/video.width;let sy=area.size.height/video.height;let scale=if sx<sy{sx}else{sy};
+ let width=video.width*scale;let height=video.height*scale;
+ Rect{origin:Point{x:area.origin.x+(area.size.width-width)*0.5,y:area.origin.y+(area.size.height-height)*0.5},size:Size{width:width,height:height}}
+}
+unsafe fn fit_parent(video:Id)->Id{unsafe{
+ let mut v=m0(video,s(b"superview\0" as *const u8));let mut depth=0;
+ while v!=0 as Id&&depth<8{if kind(v,b"_TtC6Twitch14FeedPlayerView\0" as *const u8){return v;}v=m0(v,s(b"superview\0" as *const u8));depth=depth+1;}0 as Id
+}}
+unsafe fn set_fit_gravity(view:Id){unsafe{
+ let layer_view=field(view,b"playerLayerView\0" as *const u8);
+ let layer=if layer_view!=0 as Id{m0(layer_view,s(b"layer\0" as *const u8))}else{0 as Id};
+ let symbol=dlsym(18446744073709551614usize as Id,b"AVLayerVideoGravityResizeAspect\0" as *const u8);
+ if layer!=0 as Id&&symbol!=0 as Id&&responds(layer,s(b"setVideoGravity:\0" as *const u8)){let gravity=*(symbol as *const Id);if gravity!=0 as Id&&!eq(m0(layer,s(b"videoGravity\0" as *const u8)),gravity){m1(layer,s(b"setVideoGravity:\0" as *const u8),gravity);}}
+}}
+unsafe fn feed_video_fit(view:Id){unsafe{
+ let feed=fit_parent(view);if feed==0 as Id{return;}
+ set_native_flag(view,b"videoFillsViewBounds\0" as *const u8,false);
+ let bounds=rect(view,s(b"bounds\0" as *const u8));if !valid_rect(bounds){return;}
+ let width=assoc(view,&raw const FIT_WIDTH_KEY);let height=assoc(view,&raw const FIT_HEIGHT_KEY);
+ if width==0 as Id||height==0 as Id||double(width,s(b"doubleValue\0" as *const u8))!=bounds.size.width||double(height,s(b"doubleValue\0" as *const u8))!=bounds.size.height{
+  let scroll=field(view,b"scrollView\0" as *const u8);if kind(scroll,b"UIScrollView\0" as *const u8){md(scroll,s(b"setZoomScale:\0" as *const u8),1.0);}
+  put(view,&raw const FIT_WIDTH_KEY,real(bounds.size.width));put(view,&raw const FIT_HEIGHT_KEY,real(bounds.size.height));
+ }
+ set_fit_gravity(view);
+}}
+unsafe extern "C" fn video_layout(o:Id,sel:Sel){unsafe{
+ if fit_parent(o)!=0 as Id{set_native_flag(o,b"videoFillsViewBounds\0" as *const u8,false);}
+ transmute::<Id,Zero>(OLD_VIDEO_LAYOUT)(o,sel);feed_video_fit(o);
+}}
+unsafe fn internal_video_item(item:Id,video:Id)->bool{unsafe{
+ let mut v=item;if kind(v,b"UILayoutGuide\0" as *const u8){v=m0(v,s(b"owningView\0" as *const u8));if v==video{return true;}}
+ if v==video||!kind(v,b"UIView\0" as *const u8){return false;}
+ let mut depth=0;while v!=0 as Id&&depth<16{if v==video{return true;}v=m0(v,s(b"superview\0" as *const u8));depth=depth+1;}false
+}}
+unsafe fn set_constraint_constant(c:Id,v:f64){unsafe{if c!=0 as Id&&double(c,s(b"constant\0" as *const u8))!=v{md(c,s(b"setConstant:\0" as *const u8),v);}}}
+unsafe fn feed_viewport_fit(feed:Id){unsafe{
+ let container=field(feed,b"playerContainerView\0" as *const u8);let video=field(feed,b"playerView\0" as *const u8);
+ if !kind(container,b"UIView\0" as *const u8)||!kind(video,b"_TtC6Twitch15VideoPlayerView\0" as *const u8)||m0(video,s(b"superview\0" as *const u8))!=container{return;}
+ if !valid_rect(rect(container,s(b"bounds\0" as *const u8))){return;}
+ let bounds=rect(container,s(b"bounds\0" as *const u8));let mut area=bounds;
+ // The feed can keep its old width while its immediate pane shrinks. Intersect
+ // horizontal coordinates only, so scrolling a card vertically never zooms it.
+ let parent=m0(feed,s(b"superview\0" as *const u8));
+ if parent!=0 as Id{let pane=convert_rect(parent,s(b"convertRect:toView:\0" as *const u8),rect(parent,s(b"bounds\0" as *const u8)),container);if valid_rect(pane){let left=if pane.origin.x>area.origin.x{pane.origin.x}else{area.origin.x};let right=if pane.origin.x+pane.size.width<area.origin.x+area.size.width{pane.origin.x+pane.size.width}else{area.origin.x+area.size.width};area.origin.x=left;area.size.width=right-left;}}
+ let fitted=aspect_fit(native_size(feed,b"videoSize\0" as *const u8),area);if !valid_rect(fitted){return;}
+ let old=assoc(video,&raw const FIT_CONSTRAINTS_KEY);let same=weak_get(assoc(video,&raw const FIT_PARENT_KEY))==container;
+ if !same&&old!=0 as Id{m1(cls(b"NSLayoutConstraint\0" as *const u8),s(b"deactivateConstraints:\0" as *const u8),old);put(video,&raw const FIT_CONSTRAINTS_KEY,0 as Id);}
+ // Remove the native fill/oversize placement without touching its internal scroll
+ // and rendering constraints. Keep our own four center/size constraints across layouts.
+ let mut owner=video;let mut depth=0;
+ while owner!=0 as Id&&depth<8{
+  let constraints=m0(owner,s(b"constraints\0" as *const u8));let n=count(constraints,s(b"count\0" as *const u8));let mut i=0;
+  while i<n{let c=mu(constraints,s(b"objectAtIndex:\0" as *const u8),i);let ours=same&&old!=0 as Id&&b1(old,s(b"containsObject:\0" as *const u8),c);
+   let first=m0(c,s(b"firstItem\0" as *const u8));let second=m0(c,s(b"secondItem\0" as *const u8));let other=if first==video{second}else{first};if !ours&&(first==video||second==video)&&!internal_video_item(other,video){mb(c,s(b"setActive:\0" as *const u8),false);}i=i+1;
+  }if owner==feed{break;}owner=m0(owner,s(b"superview\0" as *const u8));depth=depth+1;
+ }
+ if assoc(video,&raw const FIT_CONSTRAINTS_KEY)==0 as Id{
+  mb(video,s(b"setTranslatesAutoresizingMaskIntoConstraints:\0" as *const u8),false);
+  let pins=m0(cls(b"NSMutableArray\0" as *const u8),s(b"array\0" as *const u8));
+  m1(pins,s(b"addObject:\0" as *const u8),pin(video,b"centerXAnchor\0" as *const u8,container,b"centerXAnchor\0" as *const u8,0.0));
+  m1(pins,s(b"addObject:\0" as *const u8),pin(video,b"centerYAnchor\0" as *const u8,container,b"centerYAnchor\0" as *const u8,0.0));
+  let width=md(m0(video,s(b"widthAnchor\0" as *const u8)),s(b"constraintEqualToConstant:\0" as *const u8),fitted.size.width);mb(width,s(b"setActive:\0" as *const u8),true);m1(pins,s(b"addObject:\0" as *const u8),width);
+  let height=md(m0(video,s(b"heightAnchor\0" as *const u8)),s(b"constraintEqualToConstant:\0" as *const u8),fitted.size.height);mb(height,s(b"setActive:\0" as *const u8),true);m1(pins,s(b"addObject:\0" as *const u8),height);
+  put(video,&raw const FIT_CONSTRAINTS_KEY,pins);put(video,&raw const FIT_PARENT_KEY,weak(container));
+ }
+ let pins=assoc(video,&raw const FIT_CONSTRAINTS_KEY);
+ set_constraint_constant(mu(pins,s(b"objectAtIndex:\0" as *const u8),0),fitted.origin.x+fitted.size.width*0.5-bounds.origin.x-bounds.size.width*0.5);
+ set_constraint_constant(mu(pins,s(b"objectAtIndex:\0" as *const u8),1),fitted.origin.y+fitted.size.height*0.5-bounds.origin.y-bounds.size.height*0.5);
+ set_constraint_constant(mu(pins,s(b"objectAtIndex:\0" as *const u8),2),fitted.size.width);set_constraint_constant(mu(pins,s(b"objectAtIndex:\0" as *const u8),3),fitted.size.height);
+ let pin_count=count(pins,s(b"count\0" as *const u8));let mut pin_index=0;while pin_index<pin_count{let c=mu(pins,s(b"objectAtIndex:\0" as *const u8),pin_index);if !b0(c,s(b"isActive\0" as *const u8)){mb(c,s(b"setActive:\0" as *const u8),true);}pin_index=pin_index+1;}
+ let thumbnail=field(feed,b"thumbnailView\0" as *const u8);if kind(thumbnail,b"UIView\0" as *const u8){mu(thumbnail,s(b"setContentMode:\0" as *const u8),1);}
+ feed_video_fit(video);
+}}
+unsafe extern "C" fn feed_layout(o:Id,sel:Sel){unsafe{transmute::<Id,Zero>(OLD_FEED_LAYOUT)(o,sel);feed_viewport_fit(o);}}
+// Normalize empty/duplicated custom navigation glyphs, preserving their actual
+// UIControl actions. Never replace a titled control or a legitimate single icon.
+#[repr(C)]struct ToolbarShape{control:Id,controls:usize,images:usize,text:bool}
+unsafe fn toolbar_shape(view:Id,depth:usize)->ToolbarShape{unsafe{
+ let mut out=ToolbarShape{control:0 as Id,controls:0,images:0,text:false};if view==0 as Id||depth>8||b0(view,s(b"isHidden\0" as *const u8)){return out;}
+ if kind(view,b"UIControl\0" as *const u8){out.control=view;out.controls=1;}
+ if kind(view,b"UILabel\0" as *const u8)&&text_valid(m0(view,s(b"text\0" as *const u8))){out.text=true;}
+ if kind(view,b"UIButton\0" as *const u8)&&text_valid(m0(view,s(b"currentTitle\0" as *const u8))){out.text=true;}
+ if kind(view,b"UIImageView\0" as *const u8)&&m0(view,s(b"image\0" as *const u8))!=0 as Id{out.images=1;}
+ let children=m0(view,s(b"subviews\0" as *const u8));let n=count(children,s(b"count\0" as *const u8));let mut i=0;
+ while i<n{let child=toolbar_shape(mu(children,s(b"objectAtIndex:\0" as *const u8),i),depth+1);if child.control!=0 as Id{out.control=child.control;}out.controls=out.controls+child.controls;out.images=out.images+child.images;out.text=out.text||child.text;i=i+1;}out
+}}
+unsafe extern "C" fn relay_toolbar(_:Id,_:Sel,sender:Id){unsafe{
+ let original=assoc(sender,&raw const TOOLBAR_ORIGINAL_KEY);if original!=0 as Id{mu(original,s(b"sendActionsForControlEvents:\0" as *const u8),64);}
+}}
+unsafe fn cover_gesture_glyph(custom:Id){unsafe{
+ let cover=m0(cls(b"UIView\0" as *const u8),s(b"new\0" as *const u8));mb(cover,s(b"setUserInteractionEnabled:\0" as *const u8),false);mb(cover,s(b"setTranslatesAutoresizingMaskIntoConstraints:\0" as *const u8),false);m1(cover,s(b"setBackgroundColor:\0" as *const u8),m0(cls(b"UIColor\0" as *const u8),s(b"systemBackgroundColor\0" as *const u8)));m1(custom,s(b"addSubview:\0" as *const u8),cover);
+ pin(cover,b"leadingAnchor\0" as *const u8,custom,b"leadingAnchor\0" as *const u8,0.0);pin(cover,b"trailingAnchor\0" as *const u8,custom,b"trailingAnchor\0" as *const u8,0.0);pin(cover,b"topAnchor\0" as *const u8,custom,b"topAnchor\0" as *const u8,0.0);pin(cover,b"bottomAnchor\0" as *const u8,custom,b"bottomAnchor\0" as *const u8,0.0);
+ let image=m1(cls(b"UIImage\0" as *const u8),s(b"systemImageNamed:\0" as *const u8),str(b"ellipsis\0" as *const u8));let glyph=m1(m0(cls(b"UIImageView\0" as *const u8),s(b"alloc\0" as *const u8)),s(b"initWithImage:\0" as *const u8),image);m1(glyph,s(b"setTintColor:\0" as *const u8),m0(cls(b"UIColor\0" as *const u8),s(b"labelColor\0" as *const u8)));mu(glyph,s(b"setContentMode:\0" as *const u8),1);mb(glyph,s(b"setTranslatesAutoresizingMaskIntoConstraints:\0" as *const u8),false);m1(cover,s(b"addSubview:\0" as *const u8),glyph);pin(glyph,b"centerXAnchor\0" as *const u8,cover,b"centerXAnchor\0" as *const u8,0.0);pin(glyph,b"centerYAnchor\0" as *const u8,cover,b"centerYAnchor\0" as *const u8,0.0);mb(md(m0(glyph,s(b"widthAnchor\0" as *const u8)),s(b"constraintEqualToConstant:\0" as *const u8),22.0),s(b"setActive:\0" as *const u8),true);mb(md(m0(glyph,s(b"heightAnchor\0" as *const u8)),s(b"constraintEqualToConstant:\0" as *const u8),22.0),s(b"setActive:\0" as *const u8),true);mb(custom,s(b"setClipsToBounds:\0" as *const u8),true);put(custom,&raw const TOOLBAR_MARKER_KEY,number(1));release(glyph);release(cover);
+}}
+unsafe fn normalize_toolbar(item:Id){unsafe{
+ if item==0 as Id{return;}let buttons=m0(item,s(b"rightBarButtonItems\0" as *const u8));let n=count(buttons,s(b"count\0" as *const u8));let mut i=0;
+ while i<n{let button_item=mu(buttons,s(b"objectAtIndex:\0" as *const u8),i);
+  if responds(button_item,s(b"setHidesSharedBackground:\0" as *const u8)){mb(button_item,s(b"setHidesSharedBackground:\0" as *const u8),true);}
+  let custom=m0(button_item,s(b"customView\0" as *const u8));
+  if custom!=0 as Id&&assoc(custom,&raw const TOOLBAR_MARKER_KEY)==0 as Id{
+   let shape=toolbar_shape(custom,0);
+   if shape.controls==1&&!shape.text&&shape.images!=1{
+    let replacement=button(b"More\0" as *const u8,b"relayToolbar:\0" as *const u8);icon_button(replacement,b"ellipsis\0" as *const u8);
+    mb(replacement,s(b"setEnabled:\0" as *const u8),b0(shape.control,s(b"isEnabled\0" as *const u8)));let label=m0(shape.control,s(b"accessibilityLabel\0" as *const u8));if text_valid(label){m1(replacement,s(b"setAccessibilityLabel:\0" as *const u8),label);}
+    put(replacement,&raw const TOOLBAR_ORIGINAL_KEY,shape.control);put(replacement,&raw const TOOLBAR_MARKER_KEY,number(1));m1(button_item,s(b"setCustomView:\0" as *const u8),replacement);
+   }else if shape.controls==0&&!shape.text&&shape.images!=1&&count(m0(custom,s(b"gestureRecognizers\0" as *const u8)),s(b"count\0" as *const u8))>0{cover_gesture_glyph(custom);}
+  }i=i+1;
+ }
+}}
+unsafe fn discovery_toolbar(o:Id){unsafe{
+ let mut vc=o;let mut depth=0;while vc!=0 as Id&&depth<5{
+  if kind(vc,b"UINavigationController\0" as *const u8){break;}
+  normalize_toolbar(m0(vc,s(b"navigationItem\0" as *const u8)));vc=m0(vc,s(b"parentViewController\0" as *const u8));depth=depth+1;
+ }
+}}
+unsafe extern "C" fn discovery_layout(o:Id,sel:Sel){unsafe{transmute::<Id,Zero>(OLD_DISCOVERY_LAYOUT)(o,sel);discovery_toolbar(o);}}
+unsafe fn initialize_feed_layout(){unsafe{
+ let feed=cls(b"_TtC6Twitch14FeedPlayerView\0" as *const u8);let video=cls(b"_TtC6Twitch15VideoPlayerView\0" as *const u8);let discovery=cls(b"_TtC6Twitch30DiscoveryFeedTabViewController\0" as *const u8);
+ if feed!=0 as Id{OLD_FEED_LAYOUT=hook(feed,s(b"layoutSubviews\0" as *const u8),feed_layout as Id);}
+ if video!=0 as Id{OLD_VIDEO_LAYOUT=hook(video,s(b"layoutSubviews\0" as *const u8),video_layout as Id);}
+ if discovery!=0 as Id{OLD_DISCOVERY_LAYOUT=hook(discovery,s(b"viewDidLayoutSubviews\0" as *const u8),discovery_layout as Id);}
+}
+}
+
 #[used]#[unsafe(link_section="__DATA,__mod_init_func")]static INITIALIZE:unsafe extern "C" fn()=native_rewind_initialize;
 
 

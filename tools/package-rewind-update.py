@@ -1,4 +1,4 @@
-"""Replace only NativeRewind in an existing TwitchPlus IPA and verify preservation."""
+"""Replace NativeRewind, optionally apply the legacy compatibility SDK, and verify preservation."""
 import argparse, copy, hashlib, json, zipfile, struct, plistlib
 from pathlib import Path
 
@@ -46,10 +46,12 @@ def main():
         raise ValueError('Expected ARM64 Mach-O library')
     before = sha(args.base.read_bytes())
     hashes = {}
+    app_sdk = None
     replacements = {name: data}
     with zipfile.ZipFile(args.base) as src:
         if len(src.namelist()) != len(set(src.namelist())) or name not in src.namelist():
             raise ValueError('Expected TwitchPlus archive without duplicate members')
+        app_sdk = plistlib.loads(src.read('Payload/Twitch.app/Info.plist')).get('DTSDKName')
         if args.duo_compatibility:
             binary_name = 'Payload/Twitch.app/Twitch'
             plist_name = 'Payload/Twitch.app/Info.plist'
@@ -73,7 +75,7 @@ def main():
             assert sha(dst.read(member)) == (sha(replacements[member]) if member in replacements else digest), member
     assert sha(args.base.read_bytes()) == before
     report = {'baseSha256': before, 'outputSha256': sha(args.output.read_bytes()),
-              'bytes': args.output.stat().st_size, 'changedMembers': list(replacements), 'duoCompatibilitySDK': '27.0' if args.duo_compatibility else None,
+              'bytes': args.output.stat().st_size, 'applicationSDK': 'iphoneos27.0' if args.duo_compatibility else app_sdk, 'changedMembers': list(replacements), 'duoCompatibilitySDK': '27.0' if args.duo_compatibility else None,
               'allOtherMembersByteIdentical': True, 'zipCRC': 'passed', 'deviceTested': False}
     args.output.with_suffix('.validation.json').write_text(json.dumps(report, indent=2)+'\n')
     print(json.dumps(report, indent=2))
