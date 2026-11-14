@@ -1,7 +1,7 @@
-name: Build v1.5 beta IPA
+name: Build v1.5 Beta 2 IPA
 on:
   push:
-    branches: [release/v1.5-beta.1]
+    branches: [release/v1.5-beta.2]
     paths: [.github/workflows/release-beta.yml]
 permissions:
   contents: write
@@ -22,13 +22,16 @@ jobs:
       - name: Package and verify
         run: |
           mkdir -p output
-          python tools/package-rewind-update.py --base /tmp/base.ipa --library build/NativeRewind.dylib --output output/TwitchPlus-v1.5-beta.1-Duo-auto-rewind-unsigned.ipa
-          zip output/TwitchPlus-v1.5-beta.1-sources.zip src/NativeRewind.rs tests/build-host.py tests/test_native.py tools/build-rewind-linux.sh tools/package-rewind-update.py AUTO-REWIND.md DUO-V2.md
+          python tools/package-rewind-update.py --base /tmp/base.ipa --library build/NativeRewind.dylib --duo-compatibility --output output/TwitchPlus-v1.5-beta.2-Duo-optional-rewind-unsigned.ipa
+          zip output/TwitchPlus-v1.5-beta.2-sources.zip src/NativeRewind.rs tests/build-host.py tests/test_native.py tools/build-rewind-linux.sh tools/package-rewind-update.py AUTO-REWIND.md DUO-V2.md BETA2.md tests/test_package_update.py
           cd output
           sha256sum *.ipa *.zip *.json > SHA256SUMS.txt
       - name: Upload and publish prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release upload v1.5-beta.1 output/* --clobber
-          gh release edit v1.5-beta.1 --draft=false --prerelease --latest=false --notes-file RELEASE-v1.5-beta.1.md
+          if ! gh release view v1.5-beta.2 >/dev/null 2>&1; then
+            gh release create v1.5-beta.2 --draft --prerelease --target "$GITHUB_SHA" --title 'TwitchPlus v1.5 Beta 2 — Optional Rewind & Duo Compatibility' --notes-file RELEASE-v1.5-beta.2.md
+          fi
+          gh release upload v1.5-beta.2 output/* --clobber
+          gh release edit v1.5-beta.2 --draft=false --prerelease --latest=false --notes-file RELEASE-v1.5-beta.2.md

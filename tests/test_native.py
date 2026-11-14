@@ -9,6 +9,10 @@ for n in ['test_live','test_rewind','test_forward','test_apply','test_login','te
 for n in ['test_login','test_getstate']:getattr(dll,n).restype=P
 dll.test_load.argtypes=[P,P,P]
 dll.test_update.argtypes=[P]
+dll.test_auto.restype=C.c_bool
+dll.test_save_auto.argtypes=[C.c_bool]
+dll.test_settings_load.argtypes=[P]
+dll.test_configure_tabs.argtypes=[P]
 dll.test_install.argtypes=[P]
 dll.test_find.argtypes=[P];dll.test_find.restype=P
 for n in ['test_scrub','test_prefetch','test_attach']:getattr(dll,n).argtypes=[P]
@@ -61,6 +65,17 @@ class Runtime:
  def message(self,o,s,a,b,c):
   name=self.val(s);kind,v=self.items.get(o,(None,None))
   if not o:return 0
+  if name=='standardUserDefaults':
+   if not hasattr(self,'defaults'):self.defaults={}
+   return self.intern(self.classes,'defaults','preferences')
+  if name=='boolForKey:':return int(getattr(self,'defaults',{}).get(self.val(a),False))
+  if name=='setBool:forKey:':self.defaults[self.val(b)]=bool(a);return 0
+  if name=='setMode:':v['mode']=a;v['modeChanges']=v.get('modeChanges',0)+1;return 0
+  if name=='mode':return v.get('mode',0)
+  if name=='setView:':v['view']=a;return 0
+  if name=='contentLayoutGuide':return o
+  if name in ['labelColor','systemBackgroundColor']:return self.obj(name)
+  if name in ['setNumberOfLines:','setOn:']:v[name]=a;return 0
   if name=='hostGetMethod':return self.methods.get((o,self.val(a)),0)
   if name=='hostTypeEncoding':return v['encoding']
   if name=='hostAddMethod':
@@ -158,13 +173,13 @@ class Tests(unittest.TestCase):
  def setUp(self):self.r=Runtime()
  def tearDown(self):self.r.assert_clean()
  def test_auto_rewind_once_without_controls(self):
-  r=self.r;r.setup();r.val(r.state).update(autoRewind=r.obj(1),cachedURL=r.new('NSURL','https://usher.ttvnw.net/vod/123.m3u8'),cachedDuration=r.obj(500))
+  r=self.r;r.setup();dll.test_save_auto(True);r.val(r.state).update(autoRewind=r.obj(1),cachedURL=r.new('NSURL','https://usher.ttvnw.net/vod/123.m3u8'),cachedDuration=r.obj(500))
   dll.test_update(r.player);self.assertEqual(r.seeks,[499]);self.assertEqual(len(r.loads),1);dll.test_update(r.player);self.assertEqual(r.seeks,[499]);self.assertEqual(len(r.loads),1)
  def test_live_cancels_waiting_auto_rewind(self):
-  r=self.r;r.setup();r.val(r.state)['autoRewind']=r.obj(1);dll.test_live(r.player)
+  r=self.r;r.setup();dll.test_save_auto(True);r.val(r.state)['autoRewind']=r.obj(1);dll.test_live(r.player)
   r.val(r.state).update(cachedURL=r.new('NSURL','https://usher.ttvnw.net/vod/123.m3u8'),cachedDuration=r.obj(500));dll.test_update(r.player);self.assertEqual(r.seeks,[]);self.assertEqual(len(r.loads),1)
  def test_auto_rewind_waits_for_recording(self):
-  r=self.r;r.setup();r.val(r.state)['autoRewind']=r.obj(1);dll.test_update(r.player);self.assertEqual(r.loads,[]);self.assertEqual(r.seeks,[])
+  r=self.r;r.setup();dll.test_save_auto(True);r.val(r.state)['autoRewind']=r.obj(1);dll.test_update(r.player);self.assertEqual(r.loads,[]);self.assertEqual(r.seeks,[])
  def test_exact_live_url_scope(self):
   for url,yes in [('https://usher.ttvnw.net/api/channel/hls/example.m3u8',True),('https://evil.example/api/channel/hls/example.m3u8',False),('https://usher.ttvnw.net/vod/123.m3u8',False),('https://usher.ttvnw.net/api/channel/hls/bad-name.m3u8',False)]:self.assertEqual(bool(dll.test_login(self.r.new('NSURL',url))),yes)
  def test_live_restores_original_url_and_invalidates_pending_fetch(self):
@@ -202,7 +217,7 @@ class Tests(unittest.TestCase):
  def test_ready_state_seeks_before_starting_playback(self):
   r=self.r;r.setup(2);r.val(r.state)['pending']=r.obj(250);r.val(r.player)['state']=1;dll.test_tick();self.assertEqual(r.seeks,[250]);self.assertEqual(r.plays,[r.player])
  def test_mounts_full_width_slider_and_right_aligned_badge(self):
-  r=self.r;r.setup();root=r.new('UIView',{'children':[],'parent':0});controls=r.new('UIView',{'children':[],'parent':root});video=r.new('IVSPlayerView',{'children':[],'parent':root,'player':r.player});r.val(root)['children']=[video,controls];dll.test_attach(controls);children=r.val(controls)['children'];self.assertEqual(len(children),5);row=next(x for x in children if r.items[x][0]=='UIStackView');self.assertEqual([r.items[x][0] for x in r.val(row)['arranged']],['UISlider']);slider=r.val(row)['arranged'][0];self.assertTrue(r.val(slider)['continuous']);self.assertIn(('preview:',4096),r.val(slider)['actions']);self.assertIn(('scrub:',192),r.val(slider)['actions']);thumbs=r.val(slider)['thumbs'];self.assertEqual(r.val(thumbs[0])['tint'],'clearColor');self.assertEqual(r.val(thumbs[1])['tint'],'whiteColor');badge=r.val(children[-1])['children'][0];self.assertEqual(r.val(r.val(badge)['text']),'LIVE');dll.test_attach(controls);self.assertEqual(len(r.val(controls)['children']),5)
+  r=self.r;r.setup();root=r.new('UIView',{'children':[],'parent':0});controls=r.new('UIView',{'children':[],'parent':root});video=r.new('IVSPlayerView',{'children':[],'parent':root,'player':r.player});r.val(root)['children']=[video,controls];dll.test_attach(controls);children=r.val(controls)['children'];self.assertEqual(len(children),5);row=next(x for x in children if r.items[x][0]=='UIStackView');self.assertEqual([r.items[x][0] for x in r.val(row)['arranged']],['UIButton','UISlider']);slider=r.val(row)['arranged'][1];self.assertTrue(r.val(slider)['continuous']);self.assertIn(('preview:',4096),r.val(slider)['actions']);self.assertIn(('scrub:',192),r.val(slider)['actions']);thumbs=r.val(slider)['thumbs'];self.assertEqual(r.val(thumbs[0])['tint'],'clearColor');self.assertEqual(r.val(thumbs[1])['tint'],'whiteColor');badge=r.val(children[-1])['children'][0];self.assertEqual(r.val(r.val(badge)['text']),'LIVE');dll.test_attach(controls);self.assertEqual(len(r.val(controls)['children']),5)
  def test_ten_second_clicks_retarget_pending_seek(self):
   r=self.r;r.setup(2);r.val(r.state)['pending']=r.obj(250);dll.test_rewind(r.sender);self.assertEqual(r.raw(r.state)['pending'],240);dll.test_forward(r.sender);self.assertEqual(r.raw(r.state)['pending'],250);self.assertEqual(r.loads,[])
  def test_uses_prepared_source_without_resolving_master_again(self):
@@ -249,26 +264,26 @@ class Tests(unittest.TestCase):
   self.assertEqual(r.seeks,[]);self.assertEqual(r.loads,[])
  def test_responsive_policy_is_deterministic_across_fold_unfold_cycles(self):
   for _ in range(20):
-   self.assertEqual(dll.test_spec(4,375,220),1);self.assertEqual(dll.test_spec(4,260,160),0);self.assertEqual(dll.test_spec(4,900,600),1)
+   self.assertEqual(dll.test_spec(4,375,220),0);self.assertEqual(dll.test_spec(4,260,160),0);self.assertEqual(dll.test_spec(4,900,600),1)
  def test_skip_buttons_clear_live_badge_for_all_visible_sizes(self):
   for w in range(240,1400,10):
    for h in range(128,700,10):
     if dll.test_spec(4,w,h):
      padding=dll.test_spec(0,w,h);bottom=dll.test_spec(1,w,h);skip=dll.test_spec(2,w,h)
      horizontal=w*0.5+skip+22+8<=w-padding-68
-     vertical=h*0.5+22+8<=h-bottom-80
+     vertical=h*0.5+22+8<=h-bottom-92
      self.assertTrue(horizontal or vertical,(w,h))
  def test_short_narrow_pane_hides_overlapping_skips(self):
   for w,h in [(280,180),(300,200),(320,220),(340,200)]:self.assertEqual(dll.test_spec(4,w,h),0)
  def test_narrow_tall_player_restores_skip_controls(self):
-  self.assertEqual(dll.test_spec(4,280,320),1)
+  self.assertEqual(dll.test_spec(4,280,360),1)
  def test_skips_clear_timeline_and_timestamp_during_resize(self):
   for w in range(240,1400,10):
    for h in range(128,700,10):
     if dll.test_spec(4,w,h):
      pad=dll.test_spec(0,w,h);bottom=dll.test_spec(1,w,h);skip=dll.test_spec(2,w,h)
-     self.assertLessEqual(h/2+30,h-bottom-32,(w,h))
-     self.assertTrue(w/2-skip-22>=pad+80 or h/2+30<=h-bottom-54,(w,h))
+     self.assertLessEqual(h/2+30,h-bottom-44,(w,h))
+     self.assertTrue(w/2-skip-22>=pad+80 or h/2+30<=h-bottom-66,(w,h))
  def test_wide_short_windows_hide_skips(self):
   for w in [600,768,1024,1366]:
    for h in [180,190,210]:self.assertEqual(dll.test_spec(4,w,h),0)
@@ -314,4 +329,22 @@ class Tests(unittest.TestCase):
   r=self.r;controls,row,_=self.layout_fixture(w=375,h=160);header=r.new('UIStackView',{'parent':controls,'x':240,'y':0,'width':120,'height':70});r.val(controls)['topRightStackView']=header;dll.test_attach(controls);self.assertTrue(r.val(row)['setHidden:'])
  def test_unknown_native_button_collection_fails_safely(self):
   r=self.r;controls,row,_=self.layout_fixture();r.val(controls)['allButtons']=r.obj({'unexpected':1});dll.test_attach(controls);self.assertFalse(r.val(row)['setHidden:'])
+ def test_auto_rewind_defaults_off(self):
+  self.assertFalse(dll.test_auto())
+ def test_auto_setting_persists_and_updates_next_live_load(self):
+  r=self.r;r.setup();dll.test_save_auto(True);self.assertTrue(dll.test_auto());dll.test_load(r.player,r.liveurl,r.obj('config'));state=dll.test_getstate(r.player);self.assertEqual(r.raw(state)['autoRewind'],1)
+  dll.test_save_auto(False);self.assertFalse(dll.test_auto());self.assertEqual(r.raw(state)['autoRewind'],0)
+  dll.test_load(r.player,r.liveurl,r.obj('config'));self.assertEqual(r.raw(dll.test_getstate(r.player))['autoRewind'],0)
+ def test_disabled_preference_blocks_already_queued_auto_switch(self):
+  r=self.r;r.setup();r.val(r.state).update(autoRewind=r.obj(1),cachedURL=r.new('NSURL','https://usher.ttvnw.net/vod/123.m3u8'),cachedDuration=r.obj(500));dll.test_update(r.player);self.assertEqual(r.loads,[]);self.assertEqual(r.seeks,[])
+ def test_settings_panel_contains_switch_explanation_and_done(self):
+  r=self.r;vc=r.new('UIViewController',{});dll.test_settings_load(vc);scroll=r.val(vc)['view'];stack=r.val(scroll)['children'][0];contents=r.val(stack)['arranged'];switchrow=r.val(contents[1])['arranged'];toggle=switchrow[1];self.assertEqual(r.items[toggle][0],'UISwitch');self.assertFalse(r.val(toggle)['setOn:']);self.assertIn(('toggleAuto:',4096),r.val(toggle)['actions']);self.assertIn('not guaranteed',r.val(r.val(contents[2])['text']));self.assertIn(('done:',64),r.val(contents[-1])['actions'])
+ def test_tab_mode_switches_only_when_needed(self):
+  r=self.r;tabs=r.new('UIViewController',{'mode':2,'setMode:':True});dll.test_configure_tabs(tabs);self.assertEqual(r.val(tabs)['mode'],1);dll.test_configure_tabs(tabs);self.assertEqual(r.val(tabs)['modeChanges'],1)
+ def test_tab_mode_older_system_is_untouched(self):
+  r=self.r;tabs=r.new('UIViewController',{});dll.test_configure_tabs(tabs);self.assertNotIn('modeChanges',r.val(tabs))
+ def test_thumb_hidden_until_actual_drag_even_if_highlight_stale(self):
+  r=self.r;controls,row,_=self.layout_fixture();dll.test_row(row,r.player);slider=r.val(row)['arranged'][1];dll.test_tick();self.assertEqual(r.val(r.val(slider)['thumbs'][1])['tint'],'clearColor')
+  r.val(slider)['tracking']=True;dll.test_tick();self.assertEqual(r.val(r.val(slider)['thumbs'][1])['tint'],'whiteColor')
+  r.val(slider)['tracking']=False;dll.test_tick();self.assertEqual(r.val(r.val(slider)['thumbs'][5])['tint'],'clearColor')
 if __name__=='__main__':unittest.main(verbosity=2)

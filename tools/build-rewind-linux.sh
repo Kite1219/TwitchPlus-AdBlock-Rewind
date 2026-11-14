@@ -12,3 +12,5 @@ python tests/build-host.py
 "$compiler_root/bin/rustc" --edition 2024 --crate-type cdylib --emit=obj -C panic=abort -C opt-level=s -C overflow-checks=no -A warnings tests/NativeRewind-host.rs -o build/host.o
 "$compiler_root/lib/rustlib/x86_64-unknown-linux-gnu/bin/gcc-ld/ld.lld" -shared -o tests/NativeRewind-test.dll build/host.o
 python tests/test_native.py
+
+python tests/test_package_update.py

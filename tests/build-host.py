@@ -47,6 +47,9 @@ export('class_getInstanceMethod','c:Id,sel:Id','Id','msg(c,s(b"hostGetMethod\\0"
 export('method_getTypeEncoding','m:Id','Id','msg(m,s(b"hostTypeEncoding\\0" as *const u8),0 as Id,0 as Id,0 as Id)')
 export('class_addMethod','c:Id,sel:Id,imp:Id,enc:Id','bool','msg(c,s(b"hostAddMethod\\0" as *const u8),sel,imp,enc)!=0 as Id')
 export('host_convert_rect','o:Id,_:Id,r:Rect,to:Id','Rect','Rect{origin:Point{x:transmute::<Id,FDouble>(H6)(o,s(b"testX\\0" as *const u8)),y:transmute::<Id,FDouble>(H6)(o,s(b"testY\\0" as *const u8))},size:r.size}')
+export('host_set_bool','o:Id,sel:Id,v:bool,k:Id','()','msg(o,sel,v as usize as Id,k,0 as Id);')
+export('host_present','o:Id,sel:Id,vc:Id,animated:bool,c:Id','()','msg(o,sel,vc,animated as usize as Id,c);')
+export('host_dismiss','o:Id,sel:Id,animated:bool,c:Id','()','msg(o,sel,animated as usize as Id,c,0 as Id);')
 s+='static mut HOST_NOW:f64=1000.0;\n'
 export('CFAbsoluteTimeGetCurrent','','f64','HOST_NOW')
 s+='''#[unsafe(no_mangle)]pub unsafe extern "C" fn test_scrub(sender:Id){unsafe{scrub(0 as Id,0 as Id,sender);}}
@@ -62,4 +65,8 @@ s+='\n#[unsafe(no_mangle)]pub static _fltused:i32=0;\n'
 s+='#[unsafe(no_mangle)]pub unsafe extern "C" fn test_update(p:Id){unsafe{update_playback(p);}}\n'
 s+='#[unsafe(no_mangle)]pub unsafe extern "C" fn test_install(c:Id){unsafe{install_horizontal_bars(c);}}\n'
 s+='#[unsafe(no_mangle)]pub unsafe extern "C" fn test_find(v:Id)->Id{unsafe{find_player(v,0)}}\n'
+s+='#[unsafe(no_mangle)]pub unsafe extern "C" fn test_auto()->bool{unsafe{auto_enabled()}}\n'
+s+='#[unsafe(no_mangle)]pub unsafe extern "C" fn test_save_auto(v:bool){unsafe{save_auto(v);}}\n'
+s+='#[unsafe(no_mangle)]pub unsafe extern "C" fn test_settings_load(v:Id){unsafe{settings_load(v,0 as Id);}}\n'
+s+='#[unsafe(no_mangle)]pub unsafe extern "C" fn test_configure_tabs(v:Id){unsafe{configure_tabs(v);}}\n'
 (r/'NativeRewind-host.rs').write_text(s)
