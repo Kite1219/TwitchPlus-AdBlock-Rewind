@@ -14,6 +14,10 @@ Go back to a moment you missed, skip in ten-second steps, and return to LIVE—all
 
 **Find it useful? Give the repo a star to help other people discover it.**
 
+## IPA tester
+
+[Download Twitch IPA Tester](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/tag/ipa-tester-v1.0.0) to check a package locally, or [run it on GitHub](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/actions/workflows/test-ipa.yml). It produces an HTML / JSON report and a device checklist for the sidebar, toolbar, rewind and ad recovery. See [IPA-TESTER.md](IPA-TESTER.md). Package checks do not execute iOS or certify ad blocking.
+
 ## Download
 
 ### [Download the latest IPA](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.2.2-beta.6/TwitchPlus-1.2.2-Beta6-unsigned.ipa)
