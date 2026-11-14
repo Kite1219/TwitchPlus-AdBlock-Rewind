@@ -8,3 +8,5 @@
 __pycache__/
 build/
 .env
+
+tests/NativeRewind-host.rs

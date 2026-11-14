@@ -45,7 +45,31 @@ impl Sub for f64{type Output=Self;fn sub(self,rhs:Self)->Self{self-rhs}}
 impl Copy for f32{}
 #[lang="mul"]pub trait Mul<Rhs=Self>{type Output;fn mul(self,rhs:Rhs)->Self::Output;}impl Mul for f64{type Output=Self;fn mul(self,rhs:Self)->Self{self*rhs}}
 #[lang="div"]pub trait Div<Rhs=Self>{type Output;fn div(self,rhs:Rhs)->Self::Output;}impl Div for f64{type Output=Self;fn div(self,rhs:Self)->Self{self/rhs}}
+#[repr(C)]struct Point{x:f64,y:f64}
+#[repr(C)]struct Size{width:f64,height:f64}
+#[repr(C)]struct Rect{origin:Point,size:Size}
+impl Copy for Point{} impl Copy for Size{} impl Copy for Rect{}
+struct Responsive{padding:f64,bottom:f64,skip:f64,visible:bool,sides:bool}
+// Width and height are the current player safe-area rectangle, never a model ID.
+fn responsive(width:f64,height:f64)->Responsive{
+ let visible=width>=240.0&&width<10000.0&&height>=128.0&&height<10000.0;
+ let raw=if width>=0.0&&width<10000.0{width*0.18}else{64.0};let skip=if raw<64.0{64.0}else{if raw>88.0{88.0}else{raw}};
+ let padding=if width<360.0{12.0}else{16.0};
+ let bottom=if height<180.0{24.0}else{if height<210.0{36.0}else{48.0}};
+ // Keep the 44-point skip target clear of the LIVE badge during narrow/short resize states.
+ let clear_horizontal=width*0.5+skip+22.0+8.0<=width-padding-68.0;
+ let clear_vertical=height*0.5+22.0+8.0<=height-bottom-80.0;
+ // The timeline spans the whole width, so horizontal badge clearance alone
+ // cannot make center skip buttons safe in a short landscape/split pane.
+ let clear_timeline=height*0.5+22.0+8.0<=height-bottom-32.0;
+ // The timestamp occupies the left 72 points above the timeline.
+ let clear_label_horizontal=width*0.5-skip-22.0>=padding+72.0+8.0;
+ let clear_label_vertical=height*0.5+22.0+8.0<=height-bottom-32.0-2.0-20.0;
+ Responsive{padding:padding,bottom:bottom,skip:skip,visible:visible,sides:visible&&width>=280.0&&height>=180.0&&clear_timeline&&(clear_horizontal||clear_vertical)&&(clear_label_horizontal||clear_label_vertical)}
+}
 unsafe extern "C"{
+ #[link_name="objc_msgSend"]fn convert_rect(o:Id,s:Sel,r:Rect,to:Id)->Rect;
+ #[link_name="objc_msgSend"]fn rect(o:Id,s:Sel)->Rect;
  #[link_name="objc_msgSend"]fn rgba(o:Id,s:Sel,r:f64,g:f64,b:f64,a:f64)->Id;
  #[link_name="objc_msgSend"]fn font2(o:Id,s:Sel,size:f64,weight:f64)->Id;
  fn CFAbsoluteTimeGetCurrent()->f64;
@@ -77,9 +101,29 @@ unsafe extern "C"{
  #[link_name="objc_msgSend"]fn action(o:Id,s:Sel,t:Id,a:Sel,event:usize)->Id;
  #[link_name="objc_msgSend"]fn timer(o:Id,s:Sel,seconds:f64,t:Id,a:Sel,info:Id,repeats:bool)->Id;
 }
-static mut MAIN:Id=0 as Id;static mut TARGET:Id=0 as Id;static mut ROWS:Id=0 as Id;
+static mut MAIN:Id=0 as Id;static mut TARGET:Id=0 as Id;static mut ROWS:Id=0 as Id;static mut PLAYERS:Id=0 as Id;
 static mut OLD_LOAD:Id=0 as Id;static mut OLD_SOURCE:Id=0 as Id;static mut OLD_LAYOUT:Id=0 as Id;
-static STATE_KEY:u8=0;static INTERNAL_KEY:u8=0;static ROW_KEY:u8=0;static PLAYER_KEY:u8=0;static BADGE_KEY:u8=0;static BACK_KEY:u8=0;static FORWARD_KEY:u8=0;static SLIDER_KEY:u8=0;static LABEL_KEY:u8=0;static LIVE_KEY:u8=0;
+static STATE_KEY:u8=0;static INTERNAL_KEY:u8=0;static ROW_KEY:u8=0;static PLAYER_KEY:u8=0;static PAD_LEFT_KEY:u8=0;static PAD_RIGHT_KEY:u8=0;static BOTTOM_KEY:u8=0;static SKIP_LEFT_KEY:u8=0;static SKIP_RIGHT_KEY:u8=0;static GEOMETRY_VISIBLE_KEY:u8=0;static BADGE_KEY:u8=0;static BACK_KEY:u8=0;static FORWARD_KEY:u8=0;static SLIDER_KEY:u8=0;static LABEL_KEY:u8=0;static LIVE_KEY:u8=0;
+// SDK metadata enables vertical bars, but this Twitch version predates them.
+// UIVerticalBarBehaviorDisabled = 1 (UIKit public header).
+unsafe extern "C" fn horizontal_bars(_:Id,_:Sel)->i64{1}
+unsafe extern "C" fn bar_preference_owner(_:Id,_:Sel)->Id{0 as Id}
+unsafe fn install_horizontal_bars(c:Id){unsafe{
+ if c==0 as Id{return;}
+ let base=cls(b"UIViewController\0" as *const u8);
+ let preferred=s(b"preferredVerticalBarBehavior\0" as *const u8);
+ let child=s(b"childViewControllerForPreferredVerticalBarBehavior\0" as *const u8);
+ let pm=class_getInstanceMethod(base,preferred);let cm=class_getInstanceMethod(base,child);
+ if pm==0 as Id||cm==0 as Id{return;}
+ // addMethod leaves any existing class implementation intact.
+ class_addMethod(c,preferred,horizontal_bars as Id,method_getTypeEncoding(pm));
+ class_addMethod(c,child,bar_preference_owner as Id,method_getTypeEncoding(cm));
+}}
+unsafe fn initialize_duo_bars(){unsafe{
+ install_horizontal_bars(cls(b"_TtC6Twitch16TabBarController\0" as *const u8));
+ install_horizontal_bars(cls(b"_TtC6Twitch21TheaterViewController\0" as *const u8));
+ install_horizontal_bars(cls(b"_TtC6Twitch30TheaterContainerViewController\0" as *const u8));
+}}
 unsafe fn s(v:*const u8)->Sel{unsafe{sel_registerName(v)}}
 unsafe fn cls(v:*const u8)->Id{unsafe{objc_getClass(v)}}
 unsafe fn str(v:*const u8)->Id{unsafe{m1(cls(b"NSString\0" as *const u8),s(b"stringWithUTF8String:\0" as *const u8),v as Id)}}
@@ -113,7 +157,7 @@ unsafe fn login_from_url(u:Id)->Id{unsafe{
 unsafe extern "C" fn load(o:Id,sel:Sel,u:Id,configuration:Id){unsafe{
  if assoc(o,&raw const INTERNAL_KEY)==0 as Id{
   let login=login_from_url(u);let state=dict();let old=assoc(o,&raw const STATE_KEY);let generation=value(old,b"generation\0" as *const u8)+1;
-  set(state,b"generation\0" as *const u8,number(generation));set(state,b"login\0" as *const u8,login);set(state,b"liveURL\0" as *const u8,u);set(state,b"configuration\0" as *const u8,configuration);put(o,&raw const STATE_KEY,state);schedule_prepare(o);
+  set(state,b"generation\0" as *const u8,number(generation));set(state,b"login\0" as *const u8,login);set(state,b"liveURL\0" as *const u8,u);set(state,b"configuration\0" as *const u8,configuration);put(o,&raw const STATE_KEY,state);if text_valid(login){set(state,b"autoRewind\0" as *const u8,number(1));m1(PLAYERS,s(b"addObject:\0" as *const u8),o);}schedule_prepare(o);
  }
  transmute::<Id,Load>(OLD_LOAD)(o,sel,u,configuration);
 }}
@@ -121,7 +165,7 @@ unsafe extern "C" fn load_source(o:Id,sel:Sel,source:Id,configuration:Id){unsafe
  if assoc(o,&raw const INTERNAL_KEY)==0 as Id{
   let mut u=m0(source,s(b"path\0" as *const u8));if kind(u,b"NSString\0" as *const u8){u=url(u);}
   let login=login_from_url(u);let state=dict();let old=assoc(o,&raw const STATE_KEY);
-  set(state,b"generation\0" as *const u8,number(value(old,b"generation\0" as *const u8)+1));set(state,b"login\0" as *const u8,login);set(state,b"liveURL\0" as *const u8,u);set(state,b"liveSource\0" as *const u8,source);set(state,b"configuration\0" as *const u8,configuration);put(o,&raw const STATE_KEY,state);schedule_prepare(o);
+  set(state,b"generation\0" as *const u8,number(value(old,b"generation\0" as *const u8)+1));set(state,b"login\0" as *const u8,login);set(state,b"liveURL\0" as *const u8,u);set(state,b"liveSource\0" as *const u8,source);set(state,b"configuration\0" as *const u8,configuration);put(o,&raw const STATE_KEY,state);if text_valid(login){set(state,b"autoRewind\0" as *const u8,number(1));m1(PLAYERS,s(b"addObject:\0" as *const u8),o);}schedule_prepare(o);
  }
  transmute::<Id,Load>(OLD_SOURCE)(o,sel,source,configuration);
 }}
@@ -130,6 +174,8 @@ unsafe fn switch_url(player:Id,u:Id,state:Id){unsafe{
 }}
 unsafe fn go_live(player:Id){unsafe{
  let state=assoc(player,&raw const STATE_KEY);let u=get(state,b"liveURL\0" as *const u8);if u==0 as Id{return;}
+ // Explicit LIVE and replay failure cancel the automatic switch for this load.
+ set(state,b"autoRewind\0" as *const u8,number(0));
  set(state,b"generation\0" as *const u8,number(value(state,b"generation\0" as *const u8)+1));set(state,b"mode\0" as *const u8,number(0));set(state,b"pending\0" as *const u8,0 as Id);set(state,b"notice\0" as *const u8,0 as Id);set(state,b"cacheBusy\0" as *const u8,number(0));let source=get(state,b"liveSource\0" as *const u8);if source!=0 as Id{put(player,&raw const INTERNAL_KEY,number(1));transmute::<Id,Load>(OLD_SOURCE)(player,s(b"loadSource:configuration:\0" as *const u8),source,get(state,b"configuration\0" as *const u8));put(player,&raw const INTERNAL_KEY,0 as Id);m0(player,s(b"play\0" as *const u8));}else{switch_url(player,u,state);}
 }}
 unsafe fn request(query:*const u8,variables:Id)->Id{unsafe{
@@ -197,10 +243,10 @@ unsafe extern "C" fn apply_recording(job:Id){unsafe{
  release(job);
 }}
 unsafe fn sender_player(sender:Id)->Id{unsafe{{let direct=weak_get(assoc(sender,&raw const PLAYER_KEY));if direct!=0 as Id{direct}else{weak_get(assoc(m0(sender,s(b"superview\0" as *const u8)),&raw const PLAYER_KEY))}}}}
-unsafe fn seek_position(player:Id,target:f64){unsafe{let duration=CMTimeGetSeconds(time(player,s(b"duration\0" as *const u8)));if duration>2.0&&duration<604800.0{let t=if target<0.0{0.0}else{if target>duration-2.0{duration-2.0}else{target}};seek(player,s(b"seekTo:\0" as *const u8),CMTimeMakeWithSeconds(t,600));}}}
+unsafe fn seek_position(player:Id,target:f64){unsafe{let duration=CMTimeGetSeconds(time(player,s(b"duration\0" as *const u8)));if duration>2.0&&duration<604800.0{let t=if target<0.0{0.0}else{if target>duration-1.0{duration-1.0}else{target}};seek(player,s(b"seekTo:\0" as *const u8),CMTimeMakeWithSeconds(t,600));}}}
 unsafe fn start_replay(player:Id,target:f64){unsafe{
  let state=assoc(player,&raw const STATE_KEY);let u=get(state,b"cachedURL\0" as *const u8);if u==0 as Id{prefetch(player);return;}
- set(state,b"mode\0" as *const u8,number(2));queue_seek(player,target,0.0);set(state,b"switchStartedAt\0" as *const u8,real(CFAbsoluteTimeGetCurrent()));set(state,b"notice\0" as *const u8,0 as Id);
+ set(state,b"autoRewind\0" as *const u8,number(0));set(state,b"mode\0" as *const u8,number(2));queue_seek(player,target,0.0);set(state,b"switchStartedAt\0" as *const u8,real(CFAbsoluteTimeGetCurrent()));set(state,b"notice\0" as *const u8,0 as Id);
  m0(player,s(b"pause\0" as *const u8));let source=prepared_source(state,target);
  if source!=0 as Id{put(player,&raw const INTERNAL_KEY,number(1));transmute::<Id,Load>(OLD_SOURCE)(player,s(b"loadSource:configuration:\0" as *const u8),source,get(state,b"configuration\0" as *const u8));put(player,&raw const INTERNAL_KEY,0 as Id);}else{switch_url(player,u,state);}
  // A single Ready-state seek starts replay. Do not seek here as well:
@@ -218,60 +264,119 @@ unsafe extern "C" fn forward(_:Id,_:Sel,sender:Id){unsafe{let player=sender_play
 unsafe extern "C" fn live(_:Id,_:Sel,sender:Id){unsafe{let player=sender_player(sender);if value(assoc(player,&raw const STATE_KEY),b"mode\0" as *const u8)!=0{go_live(player);}}}
 unsafe fn find_player(view:Id,depth:usize)->Id{unsafe{
  if view==0 as Id||depth>10{return 0 as Id;}if kind(view,b"IVSPlayerView\0" as *const u8){let player=m0(view,s(b"player\0" as *const u8));if text_valid(get(assoc(player,&raw const STATE_KEY),b"login\0" as *const u8)){return player;}}
- let children=m0(view,s(b"subviews\0" as *const u8));let n=count(children,s(b"count\0" as *const u8));let mut i=0;while i<n{let p=find_player(mu(children,s(b"objectAtIndex:\0" as *const u8),i),depth+1);if p!=0 as Id{return p;}i=i+1;}0 as Id
+ let children=m0(view,s(b"subviews\0" as *const u8));let n=count(children,s(b"count\0" as *const u8));let mut i=0;let mut found=0 as Id;
+ while i<n{let p=find_player(mu(children,s(b"objectAtIndex:\0" as *const u8),i),depth+1);if p==1 as Id{return p;}if p!=0 as Id{if found!=0 as Id&&found!=p{return 1 as Id;}found=p;}i=i+1;}found
 }}
 unsafe fn button(label:*const u8,selector:*const u8)->Id{unsafe{
- let b=mu(cls(b"UIButton\0" as *const u8),s(b"buttonWithType:\0" as *const u8),1);title(b,s(b"setTitle:forState:\0" as *const u8),str(label),0);title(b,s(b"setTitleColor:forState:\0" as *const u8),m0(cls(b"UIColor\0" as *const u8),s(b"whiteColor\0" as *const u8)),0);action(b,s(b"addTarget:action:forControlEvents:\0" as *const u8),TARGET,s(selector),64);m1(b,s(b"setAccessibilityLabel:\0" as *const u8),str(label));let height=md(m0(b,s(b"heightAnchor\0" as *const u8)),s(b"constraintGreaterThanOrEqualToConstant:\0" as *const u8),44.0);mb(height,s(b"setActive:\0" as *const u8),true);let width=md(m0(b,s(b"widthAnchor\0" as *const u8)),s(b"constraintEqualToConstant:\0" as *const u8),44.0);mb(width,s(b"setActive:\0" as *const u8),true);return b;
+ let b=mu(cls(b"UIButton\0" as *const u8),s(b"buttonWithType:\0" as *const u8),1);title(b,s(b"setTitle:forState:\0" as *const u8),str(label),0);title(b,s(b"setTitleColor:forState:\0" as *const u8),m0(cls(b"UIColor\0" as *const u8),s(b"whiteColor\0" as *const u8)),0);action(b,s(b"addTarget:action:forControlEvents:\0" as *const u8),TARGET,s(selector),64);m1(b,s(b"setAccessibilityLabel:\0" as *const u8),str(label));let height=md(m0(b,s(b"heightAnchor\0" as *const u8)),s(b"constraintEqualToConstant:\0" as *const u8),44.0);mb(height,s(b"setActive:\0" as *const u8),true);let width=md(m0(b,s(b"widthAnchor\0" as *const u8)),s(b"constraintEqualToConstant:\0" as *const u8),44.0);mb(width,s(b"setActive:\0" as *const u8),true);return b;
 }}
-unsafe fn pin(row:Id,from:*const u8,view:Id,to:*const u8,offset:f64){unsafe{let constraint=anchor(m0(row,s(from)),s(b"constraintEqualToAnchor:constant:\0" as *const u8),m0(view,s(to)),offset);mb(constraint,s(b"setActive:\0" as *const u8),true);}}
+unsafe fn pin(row:Id,from:*const u8,view:Id,to:*const u8,offset:f64)->Id{unsafe{let constraint=anchor(m0(row,s(from)),s(b"constraintEqualToAnchor:constant:\0" as *const u8),m0(view,s(to)),offset);mb(constraint,s(b"setActive:\0" as *const u8),true);constraint}}
+unsafe fn tracked_pin(owner:Id,key:*const u8,view:Id,from:*const u8,other:Id,to:*const u8,offset:f64){unsafe{let constraint=pin(view,from,other,to,offset);put(owner,key,weak(constraint));}}
+unsafe fn update_pin(owner:Id,key:*const u8,offset:f64){unsafe{let constraint=weak_get(assoc(owner,key));if constraint!=0 as Id&&double(constraint,s(b"constant\0" as *const u8))!=offset{md(constraint,s(b"setConstant:\0" as *const u8),offset);}}}
+unsafe fn layout_visible(row:Id)->bool{unsafe{let stored=assoc(row,&raw const GEOMETRY_VISIBLE_KEY);stored==0 as Id||count(stored,s(b"unsignedIntegerValue\0" as *const u8))!=0}}
+fn valid_rect(r:Rect)->bool{
+ r.origin.x>0.0-10000.0&&r.origin.x<10000.0&&r.origin.y>0.0-10000.0&&r.origin.y<10000.0&&r.size.width>0.0&&r.size.width<10000.0&&r.size.height>0.0&&r.size.height<10000.0
+}
+fn overlaps(a:Rect,b:Rect)->bool{
+ valid_rect(a)&&valid_rect(b)&&a.origin.x<b.origin.x+b.size.width+8.0&&b.origin.x<a.origin.x+a.size.width+8.0&&a.origin.y<b.origin.y+b.size.height+8.0&&b.origin.y<a.origin.y+a.size.height+8.0
+}
+unsafe fn responds(o:Id,selector:Sel)->bool{unsafe{o!=0 as Id&&b1(o,s(b"respondsToSelector:\0" as *const u8),selector)}}
+unsafe fn native_view(controls:Id,name:*const u8)->Id{unsafe{let sel=s(name);if responds(controls,sel){m0(controls,sel)}else{0 as Id}}}
+unsafe fn view_visible(view:Id,controls:Id)->bool{unsafe{
+ let mut v=view;let mut depth=0;while v!=0 as Id&&v!=controls&&depth<20{
+  if b0(v,s(b"isHidden\0" as *const u8))||double(v,s(b"alpha\0" as *const u8))<0.01{return false;}
+  v=m0(v,s(b"superview\0" as *const u8));depth=depth+1;
+ }v==controls
+}}
+unsafe fn view_frame(view:Id,controls:Id)->Rect{unsafe{convert_rect(view,s(b"convertRect:toView:\0" as *const u8),rect(view,s(b"bounds\0" as *const u8)),controls)}}
+unsafe fn collides_native(controls:Id,target:Rect)->bool{unsafe{
+ let left=native_view(controls,b"topLeftStackView\0" as *const u8);let right=native_view(controls,b"topRightStackView\0" as *const u8);
+ if left!=0 as Id&&view_visible(left,controls)&&overlaps(target,view_frame(left,controls)){return true;}
+ if right!=0 as Id&&view_visible(right,controls)&&overlaps(target,view_frame(right,controls)){return true;}
+ let buttons=native_view(controls,b"allButtons\0" as *const u8);if !kind(buttons,b"NSArray\0" as *const u8){return false;}let n=count(buttons,s(b"count\0" as *const u8));let mut i=0;
+ while i<n{let button=mu(buttons,s(b"objectAtIndex:\0" as *const u8),i);if view_visible(button,controls)&&overlaps(target,view_frame(button,controls)){return true;}i=i+1;}false
+}}
+unsafe fn adapt(controls:Id,row:Id){unsafe{
+ let guide=m0(controls,s(b"safeAreaLayoutGuide\0" as *const u8));let frame=rect(guide,s(b"layoutFrame\0" as *const u8));let spec=responsive(frame.size.width,frame.size.height);
+ let mut bottom=spec.bottom;
+ // Native mute/fullscreen/chat actions may occupy more than the old fixed 48pt.
+ let native=native_view(controls,b"bottomRightStackView\0" as *const u8);
+ if native!=0 as Id&&view_visible(native,controls){let r=view_frame(native,controls);if valid_rect(r)&&r.origin.y>=frame.origin.y+frame.size.height*0.5&&r.origin.y<frame.origin.y+frame.size.height{let required=frame.origin.y+frame.size.height-r.origin.y+8.0;if required>bottom{bottom=required;}}}
+ let timeline=Rect{origin:Point{x:frame.origin.x+spec.padding,y:frame.origin.y+frame.size.height-bottom-32.0},size:Size{width:frame.size.width-spec.padding*2.0,height:32.0}};
+ let rtl=responds(controls,s(b"effectiveUserInterfaceLayoutDirection\0" as *const u8))&&count(controls,s(b"effectiveUserInterfaceLayoutDirection\0" as *const u8))==1;
+ let live=Rect{origin:Point{x:if rtl{timeline.origin.x}else{frame.origin.x+frame.size.width-spec.padding-68.0},y:timeline.origin.y-48.0},size:Size{width:68.0,height:44.0}};
+ let label=Rect{origin:Point{x:if rtl{timeline.origin.x+timeline.size.width-72.0}else{timeline.origin.x},y:timeline.origin.y-22.0},size:Size{width:72.0,height:20.0}};
+ let back=Rect{origin:Point{x:frame.origin.x+frame.size.width*0.5-spec.skip-22.0,y:frame.origin.y+frame.size.height*0.5-22.0},size:Size{width:44.0,height:44.0}};
+ let forward=Rect{origin:Point{x:frame.origin.x+frame.size.width*0.5+spec.skip-22.0,y:back.origin.y},size:Size{width:44.0,height:44.0}};
+ let visible=valid_rect(frame)&&spec.visible&&live.origin.y>=frame.origin.y+8.0&&!collides_native(controls,timeline)&&!collides_native(controls,live)&&!collides_native(controls,label);
+ let sides=visible&&spec.sides&&!overlaps(back,timeline)&&!overlaps(forward,timeline)&&!overlaps(back,label)&&!overlaps(forward,label)&&!overlaps(back,live)&&!overlaps(forward,live)&&!collides_native(controls,back)&&!collides_native(controls,forward);
+ update_pin(row,&raw const PAD_LEFT_KEY,spec.padding);update_pin(row,&raw const PAD_RIGHT_KEY,0.0-spec.padding);update_pin(row,&raw const BOTTOM_KEY,0.0-bottom);update_pin(row,&raw const SKIP_LEFT_KEY,0.0-spec.skip);update_pin(row,&raw const SKIP_RIGHT_KEY,spec.skip);
+ put(row,&raw const GEOMETRY_VISIBLE_KEY,number(if visible{1}else{0}));mb(row,s(b"setHidden:\0" as *const u8),!visible);mb(assoc(row,&raw const LIVE_KEY),s(b"setHidden:\0" as *const u8),!visible);mb(assoc(row,&raw const BACK_KEY),s(b"setHidden:\0" as *const u8),!sides);mb(assoc(row,&raw const FORWARD_KEY),s(b"setHidden:\0" as *const u8),!sides);if !visible{mb(assoc(row,&raw const LABEL_KEY),s(b"setHidden:\0" as *const u8),true);}
+}}
 unsafe fn append(a:Id,b:Id)->Id{unsafe{m1(a,s(b"stringByAppendingString:\0" as *const u8),b)}}
 unsafe fn digits(v:usize)->Id{unsafe{let n=m0(number(v),s(b"stringValue\0" as *const u8));if v<10{append(str(b"0\0" as *const u8),n)}else{n}}}
 // Position since the beginning of the stream, never a negative live offset.
 unsafe fn clock(position:f64)->Id{unsafe{let sec=if position>=0.0&&position<604800.0{position}else{0.0};let h=(sec/3600.0) as usize;let m=((sec-(h as f64)*3600.0)/60.0) as usize;let ss=(sec-(h as f64)*3600.0-(m as f64)*60.0) as usize;append(append(append(append(digits(h),str(b":\0" as *const u8)),digits(m)),str(b":\0" as *const u8)),digits(ss))}}
-unsafe extern "C" fn preview(_:Id,_:Sel,sender:Id){unsafe{let row=m0(sender,s(b"superview\0" as *const u8));let end=timeline_end(sender_player(sender));let fraction=float(sender,s(b"value\0" as *const u8)) as f64;if fraction>=0.0&&fraction<=1.0&&end>2.0{let text=clock(fraction*end);mb(assoc(row,&raw const LABEL_KEY),s(b"setHidden:\0" as *const u8),false);m1(assoc(row,&raw const LABEL_KEY),s(b"setText:\0" as *const u8),text);m1(sender,s(b"setAccessibilityValue:\0" as *const u8),text);}}}
+unsafe extern "C" fn preview(_:Id,_:Sel,sender:Id){unsafe{let row=m0(sender,s(b"superview\0" as *const u8));if !layout_visible(row){return;}let end=timeline_end(sender_player(sender));let fraction=float(sender,s(b"value\0" as *const u8)) as f64;if fraction>=0.0&&fraction<=1.0&&end>2.0{let text=clock(fraction*end);mb(assoc(row,&raw const LABEL_KEY),s(b"setHidden:\0" as *const u8),false);m1(assoc(row,&raw const LABEL_KEY),s(b"setText:\0" as *const u8),text);m1(sender,s(b"setAccessibilityValue:\0" as *const u8),text);}}}
 unsafe fn icon_button(b:Id,name:*const u8){unsafe{let image=m1(cls(b"UIImage\0" as *const u8),s(b"systemImageNamed:\0" as *const u8),str(name));let conf=md(cls(b"UIImageSymbolConfiguration\0" as *const u8),s(b"configurationWithPointSize:\0" as *const u8),22.0);let image=m1(image,s(b"imageWithConfiguration:\0" as *const u8),conf);title(b,s(b"setImage:forState:\0" as *const u8),image,0);title(b,s(b"setTitle:forState:\0" as *const u8),str(b"\0" as *const u8),0);m1(b,s(b"setTintColor:\0" as *const u8),m0(cls(b"UIColor\0" as *const u8),s(b"whiteColor\0" as *const u8)));}}
 unsafe fn attach(controls:Id){unsafe{
  let mut root=m0(controls,s(b"superview\0" as *const u8));let mut player=0 as Id;let mut i=0;
  while root!=0 as Id&&i<4&&player==0 as Id{player=find_player(root,0);root=m0(root,s(b"superview\0" as *const u8));i=i+1;}
- let mut row=assoc(controls,&raw const ROW_KEY);if player==0 as Id{if row!=0 as Id{mb(row,s(b"setHidden:\0" as *const u8),true);mb(assoc(row,&raw const LABEL_KEY),s(b"setHidden:\0" as *const u8),true);mb(assoc(row,&raw const BACK_KEY),s(b"setHidden:\0" as *const u8),true);mb(assoc(row,&raw const FORWARD_KEY),s(b"setHidden:\0" as *const u8),true);mb(assoc(row,&raw const LIVE_KEY),s(b"setHidden:\0" as *const u8),true);put(row,&raw const PLAYER_KEY,0 as Id);}return;}
+ if player==1 as Id{player=0 as Id;}
+ let mut row=assoc(controls,&raw const ROW_KEY);if player==0 as Id{if row!=0 as Id{put(row,&raw const GEOMETRY_VISIBLE_KEY,number(0));mb(row,s(b"setHidden:\0" as *const u8),true);mb(assoc(row,&raw const LABEL_KEY),s(b"setHidden:\0" as *const u8),true);mb(assoc(row,&raw const BACK_KEY),s(b"setHidden:\0" as *const u8),true);mb(assoc(row,&raw const FORWARD_KEY),s(b"setHidden:\0" as *const u8),true);mb(assoc(row,&raw const LIVE_KEY),s(b"setHidden:\0" as *const u8),true);put(row,&raw const PLAYER_KEY,0 as Id);}return;}
  if row==0 as Id{
   row=m0(cls(b"UIStackView\0" as *const u8),s(b"new\0" as *const u8));mu(row,s(b"setAxis:\0" as *const u8),0);md(row,s(b"setSpacing:\0" as *const u8),6.0);mu(row,s(b"setAlignment:\0" as *const u8),3);mb(row,s(b"setTranslatesAutoresizingMaskIntoConstraints:\0" as *const u8),false);
-  let label=m0(cls(b"UILabel\0" as *const u8),s(b"new\0" as *const u8));m1(label,s(b"setText:\0" as *const u8),str(b"--:--:--\0" as *const u8));m1(label,s(b"setTextColor:\0" as *const u8),m0(cls(b"UIColor\0" as *const u8),s(b"whiteColor\0" as *const u8)));let label_width=md(m0(label,s(b"widthAnchor\0" as *const u8)),s(b"constraintEqualToConstant:\0" as *const u8),72.0);mb(label_width,s(b"setActive:\0" as *const u8),true);m1(label,s(b"setFont:\0" as *const u8),font2(cls(b"UIFont\0" as *const u8),s(b"monospacedDigitSystemFontOfSize:weight:\0" as *const u8),12.0,0.0));
+  let label=m0(cls(b"UILabel\0" as *const u8),s(b"new\0" as *const u8));m1(label,s(b"setText:\0" as *const u8),str(b"--:--:--\0" as *const u8));m1(label,s(b"setTextColor:\0" as *const u8),m0(cls(b"UIColor\0" as *const u8),s(b"whiteColor\0" as *const u8)));mb(md(m0(label,s(b"heightAnchor\0" as *const u8)),s(b"constraintEqualToConstant:\0" as *const u8),20.0),s(b"setActive:\0" as *const u8),true);let label_width=md(m0(label,s(b"widthAnchor\0" as *const u8)),s(b"constraintEqualToConstant:\0" as *const u8),72.0);mb(label_width,s(b"setActive:\0" as *const u8),true);m1(label,s(b"setFont:\0" as *const u8),font2(cls(b"UIFont\0" as *const u8),s(b"monospacedDigitSystemFontOfSize:weight:\0" as *const u8),12.0,0.0));
   let slider=m0(cls(b"UISlider\0" as *const u8),s(b"new\0" as *const u8));mb(slider,s(b"setContinuous:\0" as *const u8),true);mf(slider,s(b"setMinimumValue:\0" as *const u8),0.0);mf(slider,s(b"setMaximumValue:\0" as *const u8),1.0);mf(slider,s(b"setValue:\0" as *const u8),1.0);mb(slider,s(b"setEnabled:\0" as *const u8),false);action(slider,s(b"addTarget:action:forControlEvents:\0" as *const u8),TARGET,s(b"preview:\0" as *const u8),4096);action(slider,s(b"addTarget:action:forControlEvents:\0" as *const u8),TARGET,s(b"scrub:\0" as *const u8),192);m1(slider,s(b"setAccessibilityLabel:\0" as *const u8),str(b"Rewind timeline\0" as *const u8));
   let purple=rgba(cls(b"UIColor\0" as *const u8),s(b"colorWithRed:green:blue:alpha:\0" as *const u8),0.56862745098,0.27450980392,1.0,1.0);m1(slider,s(b"setMinimumTrackTintColor:\0" as *const u8),purple);m1(slider,s(b"setThumbTintColor:\0" as *const u8),m0(cls(b"UIColor\0" as *const u8),s(b"whiteColor\0" as *const u8)));let track=rgba(cls(b"UIColor\0" as *const u8),s(b"colorWithRed:green:blue:alpha:\0" as *const u8),1.0,1.0,1.0,0.30);m1(slider,s(b"setMaximumTrackTintColor:\0" as *const u8),track);
   let mut dot=m1(cls(b"UIImage\0" as *const u8),s(b"systemImageNamed:\0" as *const u8),str(b"circle.fill\0" as *const u8));let conf=md(cls(b"UIImageSymbolConfiguration\0" as *const u8),s(b"configurationWithPointSize:\0" as *const u8),9.0);dot=m1(dot,s(b"imageWithConfiguration:\0" as *const u8),conf);let hidden=m1(dot,s(b"imageWithTintColor:\0" as *const u8),m0(cls(b"UIColor\0" as *const u8),s(b"clearColor\0" as *const u8)));dot=m1(dot,s(b"imageWithTintColor:\0" as *const u8),m0(cls(b"UIColor\0" as *const u8),s(b"whiteColor\0" as *const u8)));title(slider,s(b"setThumbImage:forState:\0" as *const u8),hidden,0);title(slider,s(b"setThumbImage:forState:\0" as *const u8),dot,1);title(slider,s(b"setThumbImage:forState:\0" as *const u8),hidden,2);
   let live_button=mu(cls(b"UIButton\0" as *const u8),s(b"buttonWithType:\0" as *const u8),1);action(live_button,s(b"addTarget:action:forControlEvents:\0" as *const u8),TARGET,s(b"live:\0" as *const u8),64);m1(live_button,s(b"setAccessibilityLabel:\0" as *const u8),str(b"Return to live\0" as *const u8));let badge=m0(cls(b"UILabel\0" as *const u8),s(b"new\0" as *const u8));m1(badge,s(b"setText:\0" as *const u8),str(b"LIVE\0" as *const u8));m1(badge,s(b"setTextColor:\0" as *const u8),m0(cls(b"UIColor\0" as *const u8),s(b"whiteColor\0" as *const u8)));m1(badge,s(b"setFont:\0" as *const u8),md(cls(b"UIFont\0" as *const u8),s(b"boldSystemFontOfSize:\0" as *const u8),12.0));mu(badge,s(b"setTextAlignment:\0" as *const u8),1);md(m0(badge,s(b"layer\0" as *const u8)),s(b"setCornerRadius:\0" as *const u8),3.0);mb(badge,s(b"setClipsToBounds:\0" as *const u8),true);mb(badge,s(b"setTranslatesAutoresizingMaskIntoConstraints:\0" as *const u8),false);m1(live_button,s(b"addSubview:\0" as *const u8),badge);pin(badge,b"centerXAnchor\0" as *const u8,live_button,b"centerXAnchor\0" as *const u8,0.0);pin(badge,b"centerYAnchor\0" as *const u8,live_button,b"centerYAnchor\0" as *const u8,0.0);mb(md(m0(badge,s(b"widthAnchor\0" as *const u8)),s(b"constraintEqualToConstant:\0" as *const u8),60.0),s(b"setActive:\0" as *const u8),true);mb(md(m0(badge,s(b"heightAnchor\0" as *const u8)),s(b"constraintEqualToConstant:\0" as *const u8),24.0),s(b"setActive:\0" as *const u8),true);put(row,&raw const BADGE_KEY,badge);release(badge);let back=button(b"-10s\0" as *const u8,b"rewind:\0" as *const u8);let forward_button=button(b"+10s\0" as *const u8,b"forward:\0" as *const u8);icon_button(back,b"gobackward.10\0" as *const u8);icon_button(forward_button,b"goforward.10\0" as *const u8);m1(m0(live_button,s(b"titleLabel\0" as *const u8)),s(b"setFont:\0" as *const u8),md(cls(b"UIFont\0" as *const u8),s(b"boldSystemFontOfSize:\0" as *const u8),12.0));mb(label,s(b"setTranslatesAutoresizingMaskIntoConstraints:\0" as *const u8),false);m1(controls,s(b"addSubview:\0" as *const u8),label);mb(label,s(b"setHidden:\0" as *const u8),true);m1(row,s(b"addArrangedSubview:\0" as *const u8),slider);
   put(row,&raw const SLIDER_KEY,slider);put(row,&raw const LABEL_KEY,label);put(row,&raw const LIVE_KEY,live_button);put(row,&raw const BACK_KEY,back);put(row,&raw const FORWARD_KEY,forward_button);release(label);release(slider);
-  m1(controls,s(b"addSubview:\0" as *const u8),row);let guide=m0(controls,s(b"safeAreaLayoutGuide\0" as *const u8));pin(row,b"leadingAnchor\0" as *const u8,guide,b"leadingAnchor\0" as *const u8,12.0);pin(row,b"trailingAnchor\0" as *const u8,guide,b"trailingAnchor\0" as *const u8,0.0-12.0);pin(row,b"bottomAnchor\0" as *const u8,guide,b"bottomAnchor\0" as *const u8,0.0-48.0);let h=md(m0(row,s(b"heightAnchor\0" as *const u8)),s(b"constraintEqualToConstant:\0" as *const u8),32.0);mb(h,s(b"setActive:\0" as *const u8),true);
-  mb(back,s(b"setTranslatesAutoresizingMaskIntoConstraints:\0" as *const u8),false);mb(forward_button,s(b"setTranslatesAutoresizingMaskIntoConstraints:\0" as *const u8),false);m1(controls,s(b"addSubview:\0" as *const u8),back);m1(controls,s(b"addSubview:\0" as *const u8),forward_button);pin(back,b"centerXAnchor\0" as *const u8,guide,b"centerXAnchor\0" as *const u8,0.0-72.0);pin(back,b"centerYAnchor\0" as *const u8,guide,b"centerYAnchor\0" as *const u8,0.0);pin(forward_button,b"centerXAnchor\0" as *const u8,guide,b"centerXAnchor\0" as *const u8,72.0);pin(forward_button,b"centerYAnchor\0" as *const u8,guide,b"centerYAnchor\0" as *const u8,0.0);
-  mb(live_button,s(b"setTranslatesAutoresizingMaskIntoConstraints:\0" as *const u8),false);m1(controls,s(b"addSubview:\0" as *const u8),live_button);pin(live_button,b"trailingAnchor\0" as *const u8,row,b"trailingAnchor\0" as *const u8,0.0);pin(live_button,b"bottomAnchor\0" as *const u8,row,b"topAnchor\0" as *const u8,8.0);mb(md(m0(live_button,s(b"widthAnchor\0" as *const u8)),s(b"constraintEqualToConstant:\0" as *const u8),68.0),s(b"setActive:\0" as *const u8),true);mb(md(m0(live_button,s(b"heightAnchor\0" as *const u8)),s(b"constraintEqualToConstant:\0" as *const u8),44.0),s(b"setActive:\0" as *const u8),true);
+  m1(controls,s(b"addSubview:\0" as *const u8),row);let guide=m0(controls,s(b"safeAreaLayoutGuide\0" as *const u8));tracked_pin(row,&raw const PAD_LEFT_KEY,row,b"leadingAnchor\0" as *const u8,guide,b"leadingAnchor\0" as *const u8,12.0);tracked_pin(row,&raw const PAD_RIGHT_KEY,row,b"trailingAnchor\0" as *const u8,guide,b"trailingAnchor\0" as *const u8,0.0-12.0);tracked_pin(row,&raw const BOTTOM_KEY,row,b"bottomAnchor\0" as *const u8,guide,b"bottomAnchor\0" as *const u8,0.0-48.0);let h=md(m0(row,s(b"heightAnchor\0" as *const u8)),s(b"constraintEqualToConstant:\0" as *const u8),32.0);mb(h,s(b"setActive:\0" as *const u8),true);
+  mb(back,s(b"setTranslatesAutoresizingMaskIntoConstraints:\0" as *const u8),false);mb(forward_button,s(b"setTranslatesAutoresizingMaskIntoConstraints:\0" as *const u8),false);m1(controls,s(b"addSubview:\0" as *const u8),back);m1(controls,s(b"addSubview:\0" as *const u8),forward_button);tracked_pin(row,&raw const SKIP_LEFT_KEY,back,b"centerXAnchor\0" as *const u8,guide,b"centerXAnchor\0" as *const u8,0.0-72.0);pin(back,b"centerYAnchor\0" as *const u8,guide,b"centerYAnchor\0" as *const u8,0.0);tracked_pin(row,&raw const SKIP_RIGHT_KEY,forward_button,b"centerXAnchor\0" as *const u8,guide,b"centerXAnchor\0" as *const u8,72.0);pin(forward_button,b"centerYAnchor\0" as *const u8,guide,b"centerYAnchor\0" as *const u8,0.0);
+  mb(live_button,s(b"setTranslatesAutoresizingMaskIntoConstraints:\0" as *const u8),false);m1(controls,s(b"addSubview:\0" as *const u8),live_button);pin(live_button,b"trailingAnchor\0" as *const u8,row,b"trailingAnchor\0" as *const u8,0.0);pin(live_button,b"bottomAnchor\0" as *const u8,row,b"topAnchor\0" as *const u8,0.0-4.0);mb(md(m0(live_button,s(b"widthAnchor\0" as *const u8)),s(b"constraintEqualToConstant:\0" as *const u8),68.0),s(b"setActive:\0" as *const u8),true);mb(md(m0(live_button,s(b"heightAnchor\0" as *const u8)),s(b"constraintEqualToConstant:\0" as *const u8),44.0),s(b"setActive:\0" as *const u8),true);
   pin(label,b"leadingAnchor\0" as *const u8,row,b"leadingAnchor\0" as *const u8,0.0);pin(label,b"bottomAnchor\0" as *const u8,row,b"topAnchor\0" as *const u8,0.0-2.0);
   put(controls,&raw const ROW_KEY,row);m1(ROWS,s(b"addObject:\0" as *const u8),row);release(row);
  }
- put(assoc(row,&raw const BACK_KEY),&raw const PLAYER_KEY,weak(player));put(assoc(row,&raw const FORWARD_KEY),&raw const PLAYER_KEY,weak(player));put(assoc(row,&raw const LIVE_KEY),&raw const PLAYER_KEY,weak(player));mb(assoc(row,&raw const BACK_KEY),s(b"setHidden:\0" as *const u8),false);mb(assoc(row,&raw const FORWARD_KEY),s(b"setHidden:\0" as *const u8),false);mb(assoc(row,&raw const LIVE_KEY),s(b"setHidden:\0" as *const u8),false);put(row,&raw const PLAYER_KEY,weak(player));mb(row,s(b"setHidden:\0" as *const u8),false);m1(controls,s(b"bringSubviewToFront:\0" as *const u8),row);prefetch(player);
+ put(assoc(row,&raw const BACK_KEY),&raw const PLAYER_KEY,weak(player));put(assoc(row,&raw const FORWARD_KEY),&raw const PLAYER_KEY,weak(player));put(assoc(row,&raw const LIVE_KEY),&raw const PLAYER_KEY,weak(player));mb(assoc(row,&raw const BACK_KEY),s(b"setHidden:\0" as *const u8),false);mb(assoc(row,&raw const FORWARD_KEY),s(b"setHidden:\0" as *const u8),false);mb(assoc(row,&raw const LIVE_KEY),s(b"setHidden:\0" as *const u8),false);put(row,&raw const PLAYER_KEY,weak(player));mb(row,s(b"setHidden:\0" as *const u8),false);m1(controls,s(b"bringSubviewToFront:\0" as *const u8),row);adapt(controls,row);prefetch(player);
 }}
 unsafe extern "C" fn layout(o:Id,sel:Sel){unsafe{transmute::<Id,Zero>(OLD_LAYOUT)(o,sel);attach(o);}}
-unsafe extern "C" fn tick(_:Id,_:Sel,_:Id){unsafe{
- let all=m0(ROWS,s(b"allObjects\0" as *const u8));let n=count(all,s(b"count\0" as *const u8));let mut i=0;while i<n{
-  let row=mu(all,s(b"objectAtIndex:\0" as *const u8),i);let player=weak_get(assoc(row,&raw const PLAYER_KEY));let state=assoc(player,&raw const STATE_KEY);let mode=value(state,b"mode\0" as *const u8);promote_prepared(state);
+// Process every loaded live player, even before controls have been displayed.
+unsafe fn update_playback(player:Id){unsafe{
+ let state=assoc(player,&raw const STATE_KEY);promote_prepared(state);
+ if value(state,b"autoRewind\0" as *const u8)==1&&value(state,b"mode\0" as *const u8)==0&&get(state,b"cachedURL\0" as *const u8)!=0 as Id{
+  let end=double(get(state,b"cachedDuration\0" as *const u8),s(b"doubleValue\0" as *const u8));
+  if end>2.0&&end<604800.0{start_replay(player,end-1.0);}
+ }
+ let mode=value(state,b"mode\0" as *const u8);
   if mode==2&&get(state,b"pending\0" as *const u8)!=0 as Id&&CFAbsoluteTimeGetCurrent()>=double(get(state,b"seekDueAt\0" as *const u8),s(b"doubleValue\0" as *const u8)){
    let attempts=value(state,b"attempts\0" as *const u8)+1;set(state,b"attempts\0" as *const u8,number(attempts));let duration=CMTimeGetSeconds(time(player,s(b"duration\0" as *const u8)));
    if duration>2.0&&duration<604800.0&&count(player,s(b"state\0" as *const u8))>=1{seek_position(player,double(get(state,b"pending\0" as *const u8),s(b"doubleValue\0" as *const u8)));set(state,b"pending\0" as *const u8,0 as Id);let began=get(state,b"switchStartedAt\0" as *const u8);if began!=0 as Id{set(state,b"lastSourceReadySeconds\0" as *const u8,real(CFAbsoluteTimeGetCurrent()-double(began,s(b"doubleValue\0" as *const u8))));set(state,b"switchStartedAt\0" as *const u8,0 as Id);}m0(player,s(b"play\0" as *const u8));}else{if attempts>100{go_live(player);set(state,b"notice\0" as *const u8,str(b"Replay unavailable\0" as *const u8));}}
   }
+
+ if value(state,b"autoRewind\0" as *const u8)==1{prefetch(player);}
+}}
+unsafe extern "C" fn tick(_:Id,_:Sel,_:Id){unsafe{
+ let players=m0(PLAYERS,s(b"allObjects\0" as *const u8));let total=count(players,s(b"count\0" as *const u8));let mut index=0;
+ while index<total{update_playback(mu(players,s(b"objectAtIndex:\0" as *const u8),index));index=index+1;}
+ let all=m0(ROWS,s(b"allObjects\0" as *const u8));let n=count(all,s(b"count\0" as *const u8));let mut i=0;while i<n{
+  let row=mu(all,s(b"objectAtIndex:\0" as *const u8),i);let player=weak_get(assoc(row,&raw const PLAYER_KEY));let state=assoc(player,&raw const STATE_KEY);promote_prepared(state);
   let slider=assoc(row,&raw const SLIDER_KEY);let label=assoc(row,&raw const LABEL_KEY);let live_button=assoc(row,&raw const LIVE_KEY);let end=timeline_end(player);let mode=value(state,b"mode\0" as *const u8);
   if slider!=0 as Id{
    mb(slider,s(b"setEnabled:\0" as *const u8),end>2.0&&get(state,b"cachedURL\0" as *const u8)!=0 as Id);let pending=get(state,b"pending\0" as *const u8);let pos=if pending!=0 as Id{double(pending,s(b"doubleValue\0" as *const u8))}else{if mode==2{CMTimeGetSeconds(time(player,s(b"position\0" as *const u8)))}else{end}};
    if !b0(slider,s(b"isTracking\0" as *const u8)){mf(slider,s(b"setValue:\0" as *const u8),if end>0.0{(pos/end) as f32}else{1.0});}
-   let tracking=b0(slider,s(b"isTracking\0" as *const u8));let fraction=float(slider,s(b"value\0" as *const u8)) as f64;let display_position=if tracking&&fraction>=0.0&&fraction<=1.0{fraction*end}else{pos};let notice=get(state,b"notice\0" as *const u8);mb(label,s(b"setHidden:\0" as *const u8),mode==0&&!tracking);let text=if end>2.0{clock(display_position)}else{if notice!=0 as Id{notice}else{str(b"--:--:--\0" as *const u8)}};if !eq(m0(label,s(b"text\0" as *const u8)),text){m1(label,s(b"setText:\0" as *const u8),text);}let badge=assoc(row,&raw const BADGE_KEY);m1(badge,s(b"setText:\0" as *const u8),if mode==0{str(b"LIVE\0" as *const u8)}else{str(b"LIVE \xe2\x96\xb6\0" as *const u8)});m1(badge,s(b"setBackgroundColor:\0" as *const u8),rgba(cls(b"UIColor\0" as *const u8),s(b"colorWithRed:green:blue:alpha:\0" as *const u8),if mode==0{0.92}else{0.18},if mode==0{0.0}else{0.18},if mode==0{0.0}else{0.20},0.95));
+   let tracking=b0(slider,s(b"isTracking\0" as *const u8));let fraction=float(slider,s(b"value\0" as *const u8)) as f64;let display_position=if tracking&&fraction>=0.0&&fraction<=1.0{fraction*end}else{pos};let notice=get(state,b"notice\0" as *const u8);mb(label,s(b"setHidden:\0" as *const u8),!layout_visible(row)||(mode==0&&!tracking));let text=if end>2.0{clock(display_position)}else{if notice!=0 as Id{notice}else{str(b"--:--:--\0" as *const u8)}};if !eq(m0(label,s(b"text\0" as *const u8)),text){m1(label,s(b"setText:\0" as *const u8),text);}let badge=assoc(row,&raw const BADGE_KEY);m1(badge,s(b"setText:\0" as *const u8),if mode==0{str(b"LIVE\0" as *const u8)}else{str(b"LIVE \xe2\x96\xb6\0" as *const u8)});m1(badge,s(b"setBackgroundColor:\0" as *const u8),rgba(cls(b"UIColor\0" as *const u8),s(b"colorWithRed:green:blue:alpha:\0" as *const u8),if mode==0{0.92}else{0.18},if mode==0{0.0}else{0.18},if mode==0{0.0}else{0.20},0.95));
   }
   if player!=0 as Id&&m0(row,s(b"window\0" as *const u8))!=0 as Id{prefetch(player);}i=i+1;
  }
 }}
 #[unsafe(no_mangle)]pub unsafe extern "C" fn native_rewind_initialize(){unsafe{
+ initialize_duo_bars();
  MAIN=dlsym(18446744073709551614usize as Id,b"_dispatch_main_q\0" as *const u8);let player=cls(b"IVSPlayer\0" as *const u8);let controls=cls(b"_TtC6Twitch25TheaterPlayerControlsView\0" as *const u8);
  if MAIN==0 as Id||player==0 as Id||controls==0 as Id||class_getInstanceMethod(player,s(b"load:configuration:\0" as *const u8))==0 as Id||class_getInstanceMethod(controls,s(b"layoutSubviews\0" as *const u8))==0 as Id{return;}
  let target=objc_allocateClassPair(cls(b"NSObject\0" as *const u8),b"TwitchNativeRewindActions\0" as *const u8,0);if target==0 as Id{return;}
  class_addMethod(target,s(b"preview:\0" as *const u8),preview as Id,b"v24@0:8@16\0" as *const u8);class_addMethod(target,s(b"scrub:\0" as *const u8),scrub as Id,b"v24@0:8@16\0" as *const u8);class_addMethod(target,s(b"rewind:\0" as *const u8),rewind as Id,b"v24@0:8@16\0" as *const u8);class_addMethod(target,s(b"forward:\0" as *const u8),forward as Id,b"v24@0:8@16\0" as *const u8);class_addMethod(target,s(b"live:\0" as *const u8),live as Id,b"v24@0:8@16\0" as *const u8);class_addMethod(target,s(b"tick:\0" as *const u8),tick as Id,b"v24@0:8@16\0" as *const u8);objc_registerClassPair(target);TARGET=m0(target,s(b"new\0" as *const u8));ROWS=retain(m0(cls(b"NSHashTable\0" as *const u8),s(b"weakObjectsHashTable\0" as *const u8)));
+ PLAYERS=retain(m0(cls(b"NSHashTable\0" as *const u8),s(b"weakObjectsHashTable\0" as *const u8)));
  OLD_SOURCE=hook(player,s(b"loadSource:configuration:\0" as *const u8),load_source as Id);OLD_LOAD=hook(player,s(b"load:configuration:\0" as *const u8),load as Id);OLD_LAYOUT=hook(controls,s(b"layoutSubviews\0" as *const u8),layout as Id);
  timer(cls(b"NSTimer\0" as *const u8),s(b"scheduledTimerWithTimeInterval:target:selector:userInfo:repeats:\0" as *const u8),0.1,TARGET,s(b"tick:\0" as *const u8),0 as Id,true);
 }}
