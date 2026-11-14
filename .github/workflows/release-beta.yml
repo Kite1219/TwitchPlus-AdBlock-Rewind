@@ -1,0 +1,34 @@
+name: Build v1.5 beta IPA
+on:
+  push:
+    branches: [release/v1.5-beta.1]
+    paths: [.github/workflows/release-beta.yml]
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download pinned compiler and base IPA
+        run: |
+          curl -fL --retry 3 https://static.rust-lang.org/dist/2026-10-01/rustc-1.99.0-x86_64-unknown-linux-gnu.tar.xz -o /tmp/rustc.tar.xz
+          mkdir -p /tmp/compiler
+          tar -xJf /tmp/rustc.tar.xz -C /tmp/compiler
+          curl -fL --retry 3 https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.4/TwitchPlus-v1.4-AdBlock-Rewind-Duo-unsigned.ipa -o /tmp/base.ipa
+          printf '6d573ecfc6686bed9a15fc061b315cc19ead5f93faab7fc5594d23aa4f104665  /tmp/base.ipa\n' | sha256sum -c -
+      - name: Build and test
+        run: bash tools/build-rewind-linux.sh /tmp/compiler/rustc-1.99.0-x86_64-unknown-linux-gnu/rustc
+      - name: Package and verify
+        run: |
+          mkdir -p output
+          python tools/package-rewind-update.py --base /tmp/base.ipa --library build/NativeRewind.dylib --output output/TwitchPlus-v1.5-beta.1-Duo-auto-rewind-unsigned.ipa
+          zip output/TwitchPlus-v1.5-beta.1-sources.zip src/NativeRewind.rs tests/build-host.py tests/test_native.py tools/build-rewind-linux.sh tools/package-rewind-update.py AUTO-REWIND.md DUO-V2.md
+          cd output
+          sha256sum *.ipa *.zip *.json > SHA256SUMS.txt
+      - name: Upload and publish prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload v1.5-beta.1 output/* --clobber
+          gh release edit v1.5-beta.1 --draft=false --prerelease --latest=false --notes-file RELEASE-v1.5-beta.1.md
