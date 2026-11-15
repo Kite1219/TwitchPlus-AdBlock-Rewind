@@ -1,6 +1,6 @@
-# TwitchPlus
+# TwitchPlus — AdBlock, Live Rewind & iPhone Duo
 
-Ad blocking, live rewind, read-only chat and local Forced Follow for iPhone and iPad, with iPhone Duo layout adaptations.
+Ad blocking, live rewind, read-only chat and local Forced Follow for iPhone, iPhone Duo and iPad, with adaptive layouts and LiveContainer support.
 
 ## Download
 
