@@ -1,0 +1,13 @@
+{
+  "release": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/tag/v1.5",
+  "name": "TwitchPlus v1.5",
+  "latest": true,
+  "prerelease": false,
+  "ipaDigest": "sha256:4696b3c3b7026cc52332a51f56900d699fed3ce2b133a7ada4d78ee819eeb07a",
+  "assets": [
+    "SHA256SUMS.txt",
+    "TwitchPlus-v1.5-sources.zip",
+    "TwitchPlus-v1.5.ipa",
+    "validation.json"
+  ]
+}

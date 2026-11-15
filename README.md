@@ -1,107 +1,43 @@
-# TwitchPlus ó Twitch Ad Block + Live Rewind for iPhone & iPad
+# TwitchPlus
 
-![TwitchPlus ó Ad Block and Live Rewind](assets/hero.svg)
-
-**Twitch ad blocking + native live rewind, with Anti-Ban chat and local Forced Follow.**
-
-Go back to a moment you missed, skip in ten-second steps, and return to LIVEóall in the existing player. The included TwitchAdBlock base handles ad blocking.
-
-![Version](https://img.shields.io/badge/version-1.5--beta.5-9146FF) ![Platform](https://img.shields.io/badge/platform-iPhone%20%7C%20iPad-555) ![Status](https://img.shields.io/badge/status-beta-orange)
-
-[![Download IPA](https://img.shields.io/badge/Download_IPA-9146FF?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/latest)
-[![Releases](https://img.shields.io/github/v/release/Kite1219/TwitchPlus-AdBlock-Rewind?style=for-the-badge&label=Updates)](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases)
-[![GitHub stars](https://img.shields.io/github/stars/Kite1219/TwitchPlus-AdBlock-Rewind?style=for-the-badge)](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind)
-
-**Find it useful? Give the repo a star to help other people discover it.**
-
-## IPA tester
-
-[Download Twitch IPA Tester](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/tag/ipa-tester-v1.0.0) to check a package locally, or [run it on GitHub](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/actions/workflows/test-ipa.yml). It produces an HTML / JSON report and a device checklist for the sidebar, toolbar, rewind and ad recovery. See [IPA-TESTER.md](IPA-TESTER.md). Package checks do not execute iOS or certify ad blocking.
-
-## Current test build: v1.5 Beta 5
-
-[Download the Beta 5 IPA](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.5/TwitchPlus-v1.5-beta.5-player-layout-Duo-unsigned.ipa) | [Changes, validation and limits](BETA5.md)
-
-Beta 5 repairs chat-aware video sizing, control/timeline alignment and layout restoration after rotation. Beta 4's accepted compact Duo navigation and ad-filter logic are preserved. Open the sliders on the purple timeline to see **Rewind Settings - Beta 5**.
-
-Real UIKit simulator fixtures pass for layout and hit testing. Twitch playback on a physical Duo still needs verification; there is no new ad-blocking claim. This is an unsigned prerelease for your normal signing/LiveContainer workflow.
+Ad blocking, live rewind, read-only chat and local Forced Follow for iPhone and iPad, with iPhone Duo layout adaptations.
 
 ## Download
 
-### [Download the latest IPA](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.5/TwitchPlus-v1.5-beta.5-player-layout-Duo-unsigned.ipa)
+### [Download TwitchPlus v1.5](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5/TwitchPlus-v1.5.ipa)
 
-[Release notes and downloads](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases) ∑ [Report a problem](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/issues/new)
+[Latest release](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/latest) ¬∑ [Version history](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases) ¬∑ [Report a problem](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/issues/new)
 
-The home-screen app name stays **Twitch**. This is an **unsigned beta**; sign it using your normal sideloading or LiveContainer workflow.
+The home-screen name remains **Twitch**.
 
-## Ad Block + Live Rewind, plus more
+## Features
 
-| Feature | What it does |
-| --- | --- |
-| **Ad Block** | Includes the existing TwitchAdBlock component from the supplied base IPA. Ad-blocking behavior depends on that component and Twitch changes. |
-| **Native live rewind** | Scrub through an available ongoing recording in the existing video player. No separate browser or popup. |
-| **Purple timeline** | Full-width Twitch-colored progress bar above the normal bottom controls. |
-| **Precise timestamps** | HH:MM:SS shows your selected position while dragging and during replay. Hidden at live. |
-| **Minimal thumb** | A small white dot appears only while dragging. |
-| **10-second skips** | Circular back/forward controls grouped around the middle of the player. |
-| **LIVE shortcut** | Red LIVE badge at live; a dark return-to-live badge when behind. Positioned above the right edge of the timeline. |
-| **Background preparation** | Recording access and manifests prepare while you watch live. |
-| **Anti-Ban: read chat** | Anonymous, read-only chat in the native chat area when a channel ban blocks your signed-in chat view and public chat remains accessible. |
-| **Anti-Ban: Forced Follow** | Keep a banned channel in your local live Following list for quick access, even when Twitch will not let your account follow it. Includes the iPad sidebar. |
-| **Existing ad blocking** | Preserves the TwitchAdBlock component supplied in the base IPA. This project did not author that component. |
-| **iPhone and iPad layouts** | Uses native controls and preserves the existing iPad Following fix. Device coverage is still incomplete. |
+- **Ad blocking:** native live-playlist filtering and alternate-source recovery, without a third-party proxy.
+- **Live rewind:** purple timeline, HH:MM:SS position, 10-second skips and LIVE. Automatic rewind is optional and off by default.
+- **Read-only chat:** anonymous public-chat fallback in the native chat area when the signed-in view is blocked.
+- **Forced Follow:** save channels in the local Following list for quick access, including the iPad sidebar.
+- **Duo layouts:** compact navigation on wide phones, chat-aware video sizing, aligned controls and rotation handling. Video keeps its aspect ratio.
 
-## Anti-Ban: read chat + Forced Follow
-
-A channel ban can leave you unable to read that channel's chat in the app or follow the channel for quick access. **Anti-Ban combines two local workarounds:**
-
-- **Read chat while banned:** the native chat area can use an anonymous, read-only connection when public chat is available. No extra chat window or manual streamer-name entry.
-- **Forced Follow:** add the channel to your device's Following list without performing a real Twitch follow. When the channel is live, it can appear alongside your normally followed live channels, including in the iPad sidebar.
-
-### Why Forced Follow?
-
-If you cannot follow a banned channel, it disappears from your usual quick-access list. Forced Follow lets you keep it within reach and see it when live instead of searching for it every time.
-
-1. Open the channel page and tap **Forced Follow**.
-2. The button changes to **Forced Following**. The channel is saved on this device.
-3. Look in your live Following list when the channel is broadcasting. Tap the button again to remove the local entry.
-
-These features bypass the **app-side viewing and local-list limitations** for accessible public content. They **do not remove the channel ban**, restore permission to send chat messages, or create a real server-side follow. Saved channels are local to the app's data; they do not sync as actual Twitch follows.
-
-## Updates and version downloads
-
-**[Open all releases](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases)** to download an IPA and read its update notes. Open a version and expand **Assets** if needed; choose the **`.ipa` file**, not GitHub's automatically generated source-code ZIP.
-
-Each newly published version gets its own release, IPA, update notes, checksum, and validation summary. Older published releases remain on GitHub when local build copies are cleaned up. Builds made before this repository existed are described in the changelog but do not have historical IPA assets here.
+Read-only chat and Forced Follow do not remove bans, enable posting while banned, or create real Twitch follows.
 
 ## Install
 
-1. Download the IPA from the link above.
-2. Sign all executable components with your preferred sideloading setup, or use your existing LiveContainer workflow.
-3. Open a live channel and tap the video to show its controls. Drag the timeline, use the ten-second skips, or tap LIVE.
+1. Download the **.ipa** asset, not the source-code ZIP.
+2. Sign all executable components with your usual sideloading setup, or use your existing LiveContainer workflow.
+3. Open a stream. Use the sliders button on the purple timeline to open **Rewind Settings**.
 
-Keep the same app identity when updating if you want to retain local saved channels. Rewind is unavailable when Twitch does not expose an accessible ongoing recording.
+Keep the same app identity when updating to retain local settings and saved channels.
 
-## Latest performance changes
+## Compatibility
 
-- One startup seek instead of two potentially competing seeks.
-- Rapid skip taps combine into one final requested position over a short 120ms window.
-- Ready preparation stays available until its replacement is actually ready.
-- Stale or insufficient prepared history is rejected.
-- Preparation begins when the stream loads; temporary API failures retry sooner.
+Based on **Twitch 30.7**, minimum iOS **16.4**. Rewind requires an accessible ongoing recording. Ad blocking depends on available clean playback sources and may not suppress every ad.
 
-## Beta status: please read
+v1.5 is the former Beta 5 build, promoted unchanged to a regular release. Automated package, host and UIKit-fixture checks passed; the fixtures do not run Twitch or establish physical-device playback or ad-block effectiveness. The installed settings heading may still say ‚ÄúBeta 5.‚Äù
 
-The custom components are pinned to the supplied **Twitch 30.7** binary layout. Do not assume they support arbitrary Twitch versions.
+## Development
 
-Previous builds were tested by the maintainer on a phone. This release passes **35 host tests** and IPA integrity/preservation checks, but the performance changes have **not** been benchmarked on an iPhone or iPad. LiveContainer, normal sideloading, rotation, playback lifecycle, and different device sizes still need wider testing. Some buffering is controlled by Twitch, the video decoder, and your connection; instant or flawless playback is not promised.
+[Build guide](development/BUILD.md) ¬∑ [Package tester](development/IPA-TESTER.md) ¬∑ [Release notes](development/releases/v1.5.md) ¬∑ [Changelog](CHANGELOG.md)
 
-When reporting a problem, include your device, iOS/iPadOS version, installation method, channel, and whether the delay happened entering rewind or while already rewound. Never post account tokens or signing credentials.
+All development material is kept in `development/`: source, tests, build tools, release records and archived notes. Historical investigation notes are in [development/archive](development/archive/README.md).
 
-## Source and rebuilding
-
-`src/` contains the custom NativeRewind, NativeChat, ForcedFollow, and public metadata-query sources. `tools/` contains the native build and bring-your-own-base packaging helpers. The original Twitch application and third-party ad blocker are not source code owned by this project; no license for those components is granted here.
-
-See [BUILD.md](BUILD.md). The packaged release retains the existing base app and ad-blocking component; custom source is published so the changes can be inspected.
-
-Unofficial project. Not affiliated with or endorsed by Twitch, Amazon, YouTube, Apple, or the base IPA's original maintainers.
+Unofficial community project. Not affiliated with Twitch, Amazon or Apple. Upstream attribution is retained in [third_party](development/third_party/).

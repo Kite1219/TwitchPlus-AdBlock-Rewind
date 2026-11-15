@@ -1,0 +1,46 @@
+{
+  "baseSha256": "6d573ecfc6686bed9a15fc061b315cc19ead5f93faab7fc5594d23aa4f104665",
+  "outputSha256": "4696b3c3b7026cc52332a51f56900d699fed3ce2b133a7ada4d78ee819eeb07a",
+  "bytes": 152346319,
+  "applicationSDK": "iphoneos27.1",
+  "changedMembers": [
+    "Payload/Twitch.app/Frameworks/NativeRewind.dylib",
+    "Payload/Twitch.app/Frameworks/TwitchAdBlock.dylib"
+  ],
+  "duoCompatibilitySDK": null,
+  "allOtherMembersByteIdentical": true,
+  "zipCRC": "passed",
+  "deviceTested": false,
+  "adBlockImplementation": "native-response-filter",
+  "uiKitFixture": {
+    "scope": "UIKit fixture; no Twitch playback or physical device",
+    "passed": true,
+    "checks": [
+      "video-controls-hit-area",
+      "30-chat-toggle-cycles",
+      "chat-hit-isolation",
+      "bounded-constraints",
+      "12-portrait-landscape-cycles",
+      "portrait-aspect-height",
+      "native-constraint-restoration",
+      "obsolete-constraint-expiry",
+      "native-gesture-preservation",
+      "intermediate-player-ancestor"
+    ],
+    "simulator": "iPhone 17 Pro"
+  },
+  "adFilterSourceUnchangedFrom": "v1.5-beta.4",
+  "fixesAppleSDK": "26.5",
+  "fixesXcode": "Xcode 26.6\nBuild version 17F113",
+  "fixesSha256": "b7fb607d31562c5d8c283d1522999f866baa3ea1ada372db63b16c33ef9581cd",
+  "releasePromotion": {
+    "from": "v1.5-beta.5",
+    "to": "v1.5",
+    "ipaUnchanged": true,
+    "sourceCommit": "179e0c90f795c70523b4407358a42989f2b3af44"
+  },
+  "buildEnvironment": {
+    "appleSDK": "26.5",
+    "xcode": "Xcode 26.6\nBuild version 17F113"
+  }
+}

@@ -1,8 +1,8 @@
 {
-  "release": "TwitchPlus v1.5 Beta 5 | Player Layout & Rotation",
-  "tag": "v1.5-beta.5",
+  "release": "TwitchPlus v1.5",
+  "tag": "v1.5",
   "commit": "179e0c90f795c70523b4407358a42989f2b3af44",
-  "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.5/TwitchPlus-v1.5-beta.5-player-layout-Duo-unsigned.ipa",
+  "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5/TwitchPlus-v1.5.ipa",
   "sha256": "4696b3c3b7026cc52332a51f56900d699fed3ce2b133a7ada4d78ee819eeb07a",
   "bytes": 152346319,
   "hostTestsPassed": 66,
@@ -17,6 +17,7 @@
   "homeScreenName": "Twitch",
   "baseVersion": "30.7",
   "minimumOS": "16.4",
-  "releaseStatus": "beta",
-  "buildRun": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/actions/runs/43651416338"
+  "releaseStatus": "release",
+  "buildRun": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/actions/runs/43651416338",
+  "promotedFrom": "v1.5-beta.5"
 }

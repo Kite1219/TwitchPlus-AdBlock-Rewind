@@ -1,0 +1,17 @@
+{
+  "scope": "UIKit fixture; no Twitch playback or physical device",
+  "passed": true,
+  "checks": [
+    "video-controls-hit-area",
+    "30-chat-toggle-cycles",
+    "chat-hit-isolation",
+    "bounded-constraints",
+    "12-portrait-landscape-cycles",
+    "portrait-aspect-height",
+    "native-constraint-restoration",
+    "obsolete-constraint-expiry",
+    "native-gesture-preservation",
+    "intermediate-player-ancestor"
+  ],
+  "simulator": "iPhone 17 Pro"
+}

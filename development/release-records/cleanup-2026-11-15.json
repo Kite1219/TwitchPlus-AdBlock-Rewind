@@ -1,0 +1,18 @@
+{
+  "sourceHead": "64f0d30da5ee3186a5a8ef6095d43d36c94780ed",
+  "promotedBuild": "v1.5-beta.5",
+  "officialTag": "v1.5",
+  "ipaSha256": "4696b3c3b7026cc52332a51f56900d699fed3ce2b133a7ada4d78ee819eeb07a",
+  "sourceCodePreserved": true,
+  "sourceTagsPreserved": true,
+  "baseReleaseRetained": "v1.4",
+  "validation": {
+    "inspectorTests": 35,
+    "packagingTests": 7,
+    "preservationTests": 3,
+    "playlistTests": 30,
+    "workflowsYaml": "valid",
+    "currentDocumentationLinks": "valid"
+  },
+  "scope": "Repository/release organization only; no IPA rebuild or changes to shipping application code"
+}

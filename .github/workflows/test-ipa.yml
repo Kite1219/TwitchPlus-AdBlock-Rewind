@@ -6,40 +6,35 @@ on:
       release_tag:
         description: Release tag in this repository
         required: true
-        default: v1.5-beta.3
+        default: v1.5
         type: string
       ipa_asset:
         description: Exact IPA asset name
         required: true
-        default: TwitchPlus-v1.5-beta.3-Duo-fit-native-ad-recovery-unsigned.ipa
+        default: TwitchPlus-v1.5.ipa
         type: string
       profile:
         description: Package expectations
         type: choice
-        options: [beta3, twitchplus, generic]
-        default: beta3
+        options: [twitchplus, generic, beta3]
+        default: twitchplus
       source_tests:
         description: Build release sources, run regressions, and match the packaged library
         type: boolean
         default: true
       compare_base:
-        description: Require all members except NativeRewind to match the v1.4 base
+        description: Legacy comparison allowing only NativeRewind changes from v1.4
         type: boolean
-        default: true
-  push:
-    branches: [tools/ipa-tester-v1]
-    paths:
-      - .github/workflows/test-ipa.yml
-      - tools/test-twitch-ipa.py
-      - tests/test_ipa_tester.py
-      - IPA-TESTER.md
-      - RELEASE-ipa-tester-v1.0.0.md
+        default: false
   pull_request:
     paths:
       - .github/workflows/test-ipa.yml
-      - tools/test-twitch-ipa.py
-      - tests/test_ipa_tester.py
+      - development/tools/test-twitch-ipa.py
+      - development/tests/test_ipa_tester.py
 
+defaults:
+  run:
+    working-directory: development
 permissions:
   contents: read
 
@@ -62,13 +57,14 @@ jobs:
         run: python tests/test_ipa_tester.py
 
   inspect-release:
+    if: github.event_name == 'workflow_dispatch'
     needs: inspector-tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      RELEASE_TAG: ${{ inputs.release_tag || 'v1.5-beta.3' }}
-      IPA_ASSET: ${{ inputs.ipa_asset || 'TwitchPlus-v1.5-beta.3-Duo-fit-native-ad-recovery-unsigned.ipa' }}
-      TEST_PROFILE: ${{ inputs.profile || 'beta3' }}
+      RELEASE_TAG: ${{ inputs.release_tag || 'v1.5' }}
+      IPA_ASSET: ${{ inputs.ipa_asset || 'TwitchPlus-v1.5.ipa' }}
+      TEST_PROFILE: ${{ inputs.profile || 'twitchplus' }}
       RUN_SOURCE: ${{ github.event_name != 'workflow_dispatch' || inputs.source_tests }}
       COMPARE_BASE: ${{ github.event_name != 'workflow_dispatch' || inputs.compare_base }}
     steps:
@@ -109,7 +105,7 @@ jobs:
         if: env.RUN_SOURCE == 'true'
         with:
           ref: ${{ env.RELEASE_TAG }}
-          path: source-under-test
+          path: development/source-under-test
           persist-credentials: false
       - name: Download pinned native compiler
         if: env.RUN_SOURCE == 'true'
@@ -127,7 +123,7 @@ jobs:
           if os.environ['COMPARE_BASE'] == 'true':
               args += ['--baseline', 'input/base.ipa']
           if os.environ['RUN_SOURCE'] == 'true':
-              args += ['--source-tests', '--source-repo', 'source-under-test',
+              args += ['--source-tests', '--source-repo', ('source-under-test/development' if pathlib.Path('source-under-test/development').is_dir() else 'source-under-test'),
                        '--compiler-root', '/tmp/compiler/rustc-1.99.0-x86_64-unknown-linux-gnu/rustc']
           sys.exit(subprocess.call(args))
           PY
@@ -150,38 +146,6 @@ jobs:
         if: always()
         with:
           name: twitch-ipa-test-report
-          path: ipa-test-results/
+          path: development/ipa-test-results/
           if-no-files-found: warn
           retention-days: 3
-
-  publish-tester:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/tools/ipa-tester-v1'
-    needs: inspect-release
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - uses: actions/download-artifact@v4
-        with:
-          name: twitch-ipa-test-report
-          path: tested-report
-      - name: Package tester and its verified Beta 3 report
-        run: |
-          mkdir -p tester-output
-          git archive --format=zip --prefix=Twitch-IPA-Tester/ --output tester-output/Twitch-IPA-Tester-v1.0.0.zip HEAD
-          cp tested-report/report.html tester-output/Beta3-test-report.html
-          cp tested-report/report.json tester-output/Beta3-test-report.json
-          cp tested-report/source-tests.log tester-output/Beta3-source-tests.log
-          cd tester-output
-          sha256sum *.zip *.html *.json *.log > SHA256SUMS.txt
-      - name: Publish tester release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create ipa-tester-v1.0.0 --draft --target "$GITHUB_SHA" --title 'Twitch IPA Tester v1.0.0' --notes-file RELEASE-ipa-tester-v1.0.0.md
-          gh release upload ipa-tester-v1.0.0 tester-output/*
-          gh release edit ipa-tester-v1.0.0 --draft=false --latest=false

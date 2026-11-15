@@ -12,3 +12,12 @@ build/
 tests/NativeRewind-host.rs
 ipa-test-results/
 *-test-results/
+
+# Development workspace outputs
+/development/build/
+/development/output/
+/development/input/
+/development/ipa-test-results/
+/development/source-under-test/
+/development/results/
+development/tests/NativeRewind-host.rs

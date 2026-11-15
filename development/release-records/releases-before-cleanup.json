@@ -1,0 +1,413 @@
+[
+  {
+    "id": 445660848,
+    "tag": "v1.5-beta.5",
+    "name": "TwitchPlus v1.5 Beta 5 — Player Layout & Rotation",
+    "target": "179e0c90f795c70523b4407358a42989f2b3af44",
+    "body": "# TwitchPlus v1.5 Beta 5 — Player Layout & Rotation\n\nLayout repair for the reported chat overlap, short controls/timeline and lost player taps after rotating.\n\n- Visible side chat reserves video space. Closing chat expands it again, with aspect-fit playback.\n- Native controls and the purple timeline follow the video's final Auto Layout bounds, including portrait height changes.\n- Video stays inside its native touch owner's bounds. Native constraints are released/restored before size changes, and native tap recognizers are refreshed after rotation without replacing their targets or delegates.\n- Beta 4's accepted compact Duo navigation and saved settings are preserved. **The ad-filter/network implementation and playlist engine are unchanged.** Layout and the filter share `TwitchAdBlock.dylib`, so that library is rebuilt for this layout update.\n\nOpen **sliders on the purple timeline → Rewind Settings - Beta 5**. Runtime diagnostics include the rotation hook flag and viewport/chat geometry.\n\nBuilt against Apple's SDK on GitHub Actions. Validation includes a real UIKit simulator fixture for layout, constraint restoration and hit testing, plus host checks and archive preservation. **The fixture does not run Twitch or verify live playback on a physical Duo.** Please verify chat on/off and both rotation directions on your device; this release makes no new ad-blocking claim.\n\nUnsigned IPA; use your normal signing/LiveContainer workflow. Main executable, Info.plist and every archive member except the two replacement libraries remain byte-identical to the v1.4 base.\n",
+    "prerelease": true,
+    "published_at": "2026-11-14T23:11:24Z",
+    "assets": [
+      {
+        "id": 749078805,
+        "name": "apple-sdk-version.txt",
+        "bytes": 5,
+        "digest": "sha256:25205f2e2f02dc71036ee827e19c49b893b231a3d1af240e35a3ac55aa8cdcb6",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.5/apple-sdk-version.txt"
+      },
+      {
+        "id": 749078827,
+        "name": "layout-fixture.json",
+        "bytes": 459,
+        "digest": "sha256:3062c69d7aa84ff456ce7921df0d1d88c14c2867a0eaad80c45bf046c3481c8c",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.5/layout-fixture.json"
+      },
+      {
+        "id": 749078808,
+        "name": "SHA256SUMS.txt",
+        "bytes": 611,
+        "digest": "sha256:1d1fcb187ad701ca733b14c78e55329f9607e81356982319052e6ce6964688ce",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.5/SHA256SUMS.txt"
+      },
+      {
+        "id": 749078811,
+        "name": "TwitchPlus-v1.5-beta.5-player-layout-Duo-unsigned.ipa",
+        "bytes": 152346319,
+        "digest": "sha256:4696b3c3b7026cc52332a51f56900d699fed3ce2b133a7ada4d78ee819eeb07a",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.5/TwitchPlus-v1.5-beta.5-player-layout-Duo-unsigned.ipa"
+      },
+      {
+        "id": 749078809,
+        "name": "TwitchPlus-v1.5-beta.5-player-layout-Duo-unsigned.validation.json",
+        "bytes": 1263,
+        "digest": "sha256:ec49573e92c3c3104975467b240751d3770551366611d02206e8f6fdf5a5f30f",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.5/TwitchPlus-v1.5-beta.5-player-layout-Duo-unsigned.validation.json"
+      },
+      {
+        "id": 749078810,
+        "name": "TwitchPlus-v1.5-beta.5-sources.zip",
+        "bytes": 148532,
+        "digest": "sha256:5b03d3486b1e4be97526bbbe25c70a938fe280bb7c10fdcc4603b74ae9924eb5",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.5/TwitchPlus-v1.5-beta.5-sources.zip"
+      },
+      {
+        "id": 749078829,
+        "name": "xcode-version.txt",
+        "bytes": 32,
+        "digest": "sha256:18730ed2ae28a2c9cf0c2d5db549033a4f07089331391a7133b7b32187454fa9",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.5/xcode-version.txt"
+      }
+    ]
+  },
+  {
+    "id": 445412822,
+    "tag": "v1.5-beta.4",
+    "name": "TwitchPlus v1.5 Beta 4 — Native Playlist Filter & Duo Navigation",
+    "target": "13703084e0420c86ac5960430d830ac6b4a8010b",
+    "body": "# TwitchPlus v1.5 Beta 4\n\nReplaces Beta 3's delayed checker with filtering in the native player's actual playlist-response path. Compatible alternate sessions include a 360p fallback, with continuous segment numbering. The legacy proxy/token-rewrite blocker is replaced.\n\nWide phones now use native compact navigation by default. Preview fitting checks the full clipping hierarchy and sidebar overlays; theater video backgrounds extend into the reserved side area. Toolbar groups replace the old icon-cover heuristic.\n\nOpen the **sliders button on the purple timeline → Rewind Settings - Beta 4**. Automatic rewind remains optional. Live ad recovery defaults on; reopen the stream after changing it. **Compact layout on wide phones** can be disabled for sidebar testing. **Copy runtime diagnostics** reports installed hooks and real response counters.\n\nThe shipping module is built on a Mac with Apple's SDK. Source, SDK/Xcode information, checksums and package validation accompany the IPA.\n\n**Unsigned prerelease.** Use your normal signing/LiveContainer method. Quality may drop or frames may hold briefly. If no usable source exists at startup, ads can still appear. Duo rendering and an on-device ad break have not been verified; host checks are not device proof.\n\n[Investigation and limitations](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/blob/release/v1.5-beta.4/BETA4.md).\n",
+    "prerelease": true,
+    "published_at": "2026-11-14T16:01:23Z",
+    "assets": [
+      {
+        "id": 747995279,
+        "name": "apple-sdk-version.txt",
+        "bytes": 5,
+        "digest": "sha256:25205f2e2f02dc71036ee827e19c49b893b231a3d1af240e35a3ac55aa8cdcb6",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.4/apple-sdk-version.txt"
+      },
+      {
+        "id": 747995284,
+        "name": "SHA256SUMS.txt",
+        "bytes": 529,
+        "digest": "sha256:2053fc54457a68f2ab3db1afe3ae6d0dafa18e9896bb6610f0c1cf6d7d17f4e0",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.4/SHA256SUMS.txt"
+      },
+      {
+        "id": 747995281,
+        "name": "TwitchPlus-v1.5-beta.4-native-playlist-Duo-unsigned.ipa",
+        "bytes": 152342079,
+        "digest": "sha256:f9ef57afcf81caf3a9e94c8fafdf1dfe827eb65c106eab7986a18091665ff7e3",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.4/TwitchPlus-v1.5-beta.4-native-playlist-Duo-unsigned.ipa"
+      },
+      {
+        "id": 747995283,
+        "name": "TwitchPlus-v1.5-beta.4-native-playlist-Duo-unsigned.validation.json",
+        "bytes": 705,
+        "digest": "sha256:cda4a2e69ff3691d85c1daa4af8ebb1ef59ba3b986ed7474b7a5e1f78ea83192",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.4/TwitchPlus-v1.5-beta.4-native-playlist-Duo-unsigned.validation.json"
+      },
+      {
+        "id": 747995282,
+        "name": "TwitchPlus-v1.5-beta.4-sources.zip",
+        "bytes": 134800,
+        "digest": "sha256:bcc6cfdc3328dd9cdfcdbdae90e6650c2d03e1382cdcda4677e59b0484fb4cfd",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.4/TwitchPlus-v1.5-beta.4-sources.zip"
+      },
+      {
+        "id": 747995297,
+        "name": "xcode-version.txt",
+        "bytes": 32,
+        "digest": "sha256:18730ed2ae28a2c9cf0c2d5db549033a4f07089331391a7133b7b32187454fa9",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.4/xcode-version.txt"
+      }
+    ]
+  },
+  {
+    "id": 445324647,
+    "tag": "v1.5-beta.3",
+    "name": "TwitchPlus v1.5 Beta 3 — Full-Bleed Duo, Fitted Preview & Native Ad Recovery",
+    "target": "d67d8045407f651f8c0fc4cd1b49b08cd2bee3bf",
+    "body": "This beta removes Beta 2's reserved-strip compatibility workaround, changes the feed player to fit the complete video inside the current sidebar pane, repairs missing/stacked trailing toolbar glyphs, and adds an independent native live ad recovery method.\n\n### Display and controls\n\n- Restores the edge-to-edge SDK 27.1 declaration and removes the earlier horizontal-bar overrides. Backgrounds can use the full Duo window again.\n- Sizes the preview from its visible pane. Opening the sidebar shrinks the video to fit; closing it expands it again, preserving the whole frame and aspect ratio. Natural letterboxing may remain.\n- Replaces malformed custom trailing icon content with a simple ellipsis while preserving its original tap action/gesture and accessibility label. Leaves legitimate single icons and text controls intact.\n\n### Ad recovery and rewind settings\n\nTap the sliders icon at the left of the purple timeline to open **Rewind Settings**:\n\n- **Live ad recovery (experimental): ON by default.** Detects ad markers in live playlists and tries alternate anonymous Twitch playback sources. It may briefly buffer or temporarily use a fixed quality. If none is clean, normal playback continues. This is an independent native implementation informed by static inspection of Pie's public browser package; no Pie code/assets are bundled.\n- **Automatic rewind (experimental): OFF by default.** Your previous choice is preserved. It remains a separate recording-based workaround and requires an accessible ongoing recording.\n\nThe bundled original ad blocker is preserved. Its proxy health remains unverified because automatic approval review blocked a health request involving the proxy's embedded credential. The new recovery path uses anonymous Twitch requests instead. See AD-RECOVERY-RESEARCH.md for findings and limits.\n\n### Validation\n\n92 host tests and 5 packaging tests passed; ARM64 compilation/linking and complete archive integrity/hash checks passed. A public anonymous Caedrel token/master/media request succeeded, but no actual ad break was observed during that probe.\n\n**Unsigned experimental IPA: sign all executable components before installing.** Full Duo rendering, folding, playback continuity and ad-break effectiveness still require device testing. This is not a promise that every native Twitch layout problem or ad is fixed.\n\nDownload the `.ipa` asset. Updated source, SHA256SUMS and archive validation are attached.\n",
+    "prerelease": true,
+    "published_at": "2026-11-14T13:44:12Z",
+    "assets": [
+      {
+        "id": 747619849,
+        "name": "SHA256SUMS.txt",
+        "bytes": 371,
+        "digest": "sha256:f6ab91309dd22e2fe2b32b953666838cc642ce55ea095ba59fd19d7237c600f4",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.3/SHA256SUMS.txt"
+      },
+      {
+        "id": 747619852,
+        "name": "TwitchPlus-v1.5-beta.3-Duo-fit-native-ad-recovery-unsigned.ipa",
+        "bytes": 152518543,
+        "digest": "sha256:2e2e748a3caa120f5a1852fd6d1fe10fc0f3ae36ca10b1ce8df9f76b9c8ad6f9",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.3/TwitchPlus-v1.5-beta.3-Duo-fit-native-ad-recovery-unsigned.ipa"
+      },
+      {
+        "id": 747619851,
+        "name": "TwitchPlus-v1.5-beta.3-Duo-fit-native-ad-recovery-unsigned.validation.json",
+        "bytes": 431,
+        "digest": "sha256:7658c7171fe43fa177bae72f5c527b0c0b13d6fe97632d1e14ffc6a4b4547da1",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.3/TwitchPlus-v1.5-beta.3-Duo-fit-native-ad-recovery-unsigned.validation.json"
+      },
+      {
+        "id": 747619850,
+        "name": "TwitchPlus-v1.5-beta.3-sources.zip",
+        "bytes": 48161,
+        "digest": "sha256:e218bc7d46a16c0de20fbaa7cdb90eabf25438458c277fb68ea4059d5d096820",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.3/TwitchPlus-v1.5-beta.3-sources.zip"
+      }
+    ]
+  },
+  {
+    "id": 444963890,
+    "tag": "v1.5-beta.2",
+    "name": "TwitchPlus v1.5 Beta 2 — Optional Rewind & Duo Compatibility",
+    "target": "fa7cf26d8bf7c6794ad67623f8bcdef300a7ca50",
+    "body": "Automatic rewind is now optional and OFF by default. Tap the small sliders/gear button at the left of the purple timeline to open **Rewind Settings**, then enable **Automatic rewind (experimental)**. Your choice is saved on this device and applies when you next open a stream. Turning it off cancels a waiting automatic switch; tap LIVE to leave an existing replay. Manual rewind remains available.\n\nThis may avoid some live ads but is not guaranteed. It needs an accessible ongoing recording, and playback may lag farther behind the broadcast than one second.\n\n### Duo compatibility changes\n\n- Use the iOS 27.0 compatibility SDK declaration instead of 27.1 to avoid forcing this older Twitch binary into edge-to-edge vertical system bars. This can leave a reserved strip for system status controls; it is a compatibility workaround, not a true rebuild of Twitch for a newer SDK.\n- Request native tab-bar mode rather than automatic sidebar navigation to reduce the crowded navigation seen in the supplied screenshots.\n- Reserve enough height for the settings button and improve the drag-only thumb behavior. Retain the existing native-control collision and player-binding fixes.\n\n**Unsigned beta: sign all executable components before installing.** The remaining closed-source native profile/feed layouts, folding, launch and ad behavior still require device testing. These changes target the screenshots; they have not been visually verified on a Duo.\n\nValidation: 69 host tests and 5 packaging tests pass. ARM64 compilation and linking pass. Archive CRCs and all member hashes are verified. Only NativeRewind.dylib, the main executable's SDK field, and Info.plist's SDK metadata change relative to v1.4. The third-party ad blocker, chat and ForcedFollow libraries are preserved.\n\nDownload the `.ipa` asset; updated source, validation JSON and SHA256SUMS are attached. See BETA2.md for implementation details.\n",
+    "prerelease": true,
+    "published_at": "2026-11-14T02:43:04Z",
+    "assets": [
+      {
+        "id": 746049826,
+        "name": "SHA256SUMS.txt",
+        "bytes": 357,
+        "digest": "sha256:9830207cc60075a399963b8cc836c5fe9958460c9e2b28c8f715315bf6ee31b9",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.2/SHA256SUMS.txt"
+      },
+      {
+        "id": 746049824,
+        "name": "TwitchPlus-v1.5-beta.2-Duo-optional-rewind-unsigned.ipa",
+        "bytes": 152511510,
+        "digest": "sha256:77707c2a2f79f487aebd8bff3f1b171d18628f0d12f88a8e0ba2f3cc8570abe4",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.2/TwitchPlus-v1.5-beta.2-Duo-optional-rewind-unsigned.ipa"
+      },
+      {
+        "id": 746049822,
+        "name": "TwitchPlus-v1.5-beta.2-Duo-optional-rewind-unsigned.validation.json",
+        "bytes": 467,
+        "digest": "sha256:8ef82554ecb3b80019c37274a6eee6d2ef52247747ce33cfc341637f5a4c49f7",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.2/TwitchPlus-v1.5-beta.2-Duo-optional-rewind-unsigned.validation.json"
+      },
+      {
+        "id": 746049825,
+        "name": "TwitchPlus-v1.5-beta.2-sources.zip",
+        "bytes": 33517,
+        "digest": "sha256:d1daeff8fac7b3a9c0a81fb025e119c69f728505bc4d66920f1d6f3d6336adaa",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.2/TwitchPlus-v1.5-beta.2-sources.zip"
+      }
+    ]
+  },
+  {
+    "id": 444952860,
+    "tag": "v1.5-beta.1",
+    "name": "TwitchPlus v1.5 Beta 1 — Duo Layout & Automatic Rewind",
+    "target": "d090473f709cb13ef5eabb1b769df0a4eee60540",
+    "body": "TwitchPlus v1.5 Beta 1 adds automatic recording rewind and further iPhone Duo layout fixes, based on v1.4.\n\n- Automatically switches to an accessible ongoing recording and seeks to one second before its available end. The recording may lag farther behind the actual live broadcast. LIVE cancels the automatic switch.\n- Requests horizontal navigation for Twitch's main and theater containers on supported systems to address older layout assumptions.\n- Moves or hides custom controls when they overlap native buttons, accounts for asymmetric safe areas and RTL layouts, and avoids binding controls to an ambiguous player.\n\n**Unsigned experimental IPA: sign all executable components before installing.** Device testing is still required. Ad prevention, launch and folding behavior have not been verified on an iPhone Duo; startup ads may still appear and channels without accessible recordings remain live.\n\nValidation: 62 host tests passed; ARM64 compilation and linking passed; ZIP CRC and every archive member hash verified. Only NativeRewind.dylib changes from the v1.4 IPA. The included third-party ad blocker is unchanged.\n\nDownload the `.ipa` asset to install. Updated source, SHA256SUMS.txt and the archive validation report are attached. See DUO-V2.md in the source for inspection evidence and build instructions.\n",
+    "prerelease": true,
+    "published_at": "2026-11-14T02:26:24Z",
+    "assets": [
+      {
+        "id": 746009739,
+        "name": "SHA256SUMS.txt",
+        "bytes": 349,
+        "digest": "sha256:48c9605facaba1d4989d7bae67d54a0c0c286a0291dfef8a55ea1860232decf6",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.1/SHA256SUMS.txt"
+      },
+      {
+        "id": 746009736,
+        "name": "TwitchPlus-v1.5-beta.1-Duo-auto-rewind-unsigned.ipa",
+        "bytes": 152509070,
+        "digest": "sha256:95b3a9a25b5212e6a1d371e1c3fe4cb675ab7d02307dfdd97e52c42e0a78f0a7",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.1/TwitchPlus-v1.5-beta.1-Duo-auto-rewind-unsigned.ipa"
+      },
+      {
+        "id": 746009740,
+        "name": "TwitchPlus-v1.5-beta.1-Duo-auto-rewind-unsigned.validation.json",
+        "bytes": 364,
+        "digest": "sha256:f6616913c9e60212a4c896a3b14d089f0c847995a8572ecc09f4c2e8a1289a85",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.1/TwitchPlus-v1.5-beta.1-Duo-auto-rewind-unsigned.validation.json"
+      },
+      {
+        "id": 746009738,
+        "name": "TwitchPlus-v1.5-beta.1-sources.zip",
+        "bytes": 27601,
+        "digest": "sha256:17fb706bfd9ce211464c7608a4a6ac91100444a763e7d666cc4865ec5228af01",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.5-beta.1/TwitchPlus-v1.5-beta.1-sources.zip"
+      }
+    ]
+  },
+  {
+    "id": 445344820,
+    "tag": "ipa-tester-v1.0.0",
+    "name": "Twitch IPA Tester v1.0.0",
+    "target": "7d72c81855751392564e1da2886be884f3dc715d",
+    "body": "# Twitch IPA Tester v1.0.0\n\nReusable offline checks for TwitchPlus IPA releases, with JSON and browser-readable reports and a device test checklist.\n\nDownload **Twitch-IPA-Tester-v1.0.0.zip**, unzip, and run `python3 tools/test-twitch-ipa.py --gui` (Windows: `py`). Choose an IPA to inspect. No Python packages or network access are required for package inspection.\n\nThe tester checks package integrity, physical iOS architecture, encryption, library dependencies, tweak loading and initialization, feature markers, SDK declarations and optional preservation against the original IPA. Linux source testing also checks that the regression-tested library matches the IPA exactly.\n\nThe included **Beta3-test-report.html** and **Beta3-test-report.json** describe the published Beta 3 IPA. The report's device session lets you record and export sidebar, toolbar, rewind and ad-break observations locally. No IPA is bundled with this tester release.\n\nAutomatic package checks do not execute Twitch or certify its UI, signing, private runtime hooks or ad blocking. The existing unsigned IPA still needs your normal signing method. Beta 3 also carries a pre-existing Share Extension minimum of iOS 17.4 despite the main app's iOS 16.4 declaration; this appears as a report warning.\n\nSee [the tester guide](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/blob/main/IPA-TESTER.md) or [run the tester on GitHub](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/actions/workflows/test-ipa.yml).\n",
+    "prerelease": false,
+    "published_at": "2026-11-14T14:17:41Z",
+    "assets": [
+      {
+        "id": 747707966,
+        "name": "Beta3-source-tests.log",
+        "bytes": 12783,
+        "digest": "sha256:4c93a24d06c41f77e183a91f85f3af4783cdfcd3d7a642c6199dd79ac29114b3",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/ipa-tester-v1.0.0/Beta3-source-tests.log"
+      },
+      {
+        "id": 747707968,
+        "name": "Beta3-test-report.html",
+        "bytes": 123368,
+        "digest": "sha256:462cbe520df8dd61435422b7dbb1f9eb3172ef284509275bc25e8932d8b39ed1",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/ipa-tester-v1.0.0/Beta3-test-report.html"
+      },
+      {
+        "id": 747707971,
+        "name": "Beta3-test-report.json",
+        "bytes": 178286,
+        "digest": "sha256:fbad0c2b3fa50c46cdeef9ff6bcfb6466fb2e0a94fe3a3a7de0eec375ad7e7b6",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/ipa-tester-v1.0.0/Beta3-test-report.json"
+      },
+      {
+        "id": 747707970,
+        "name": "SHA256SUMS.txt",
+        "bytes": 362,
+        "digest": "sha256:43be9fb95ce32363da62390564f0ef2e74f86713e603a4c2f281577af1df0991",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/ipa-tester-v1.0.0/SHA256SUMS.txt"
+      },
+      {
+        "id": 747707969,
+        "name": "Twitch-IPA-Tester-v1.0.0.zip",
+        "bytes": 102053,
+        "digest": "sha256:628f0385e48ce0f20a5a65e02fa61c496e25d81f69d388dec5fa1e3c1f15d2a0",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/ipa-tester-v1.0.0/Twitch-IPA-Tester-v1.0.0.zip"
+      }
+    ]
+  },
+  {
+    "id": 442093597,
+    "tag": "v1.4",
+    "name": "TwitchPlus v1.4 - AdBlock, Rewind & iPhone Duo",
+    "target": "main",
+    "body": "## TwitchPlus v1.4 - AdBlock, Rewind & iPhone Duo\n\n**[Download the IPA](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.4/TwitchPlus-v1.4-AdBlock-Rewind-Duo-unsigned.ipa)**\n\n### Updated ad blocker\nUpdates the bundled TwitchAdBlock tweak from 0.1.13 to **0.1.18**, taken directly from [upstream's Twitch 31.9 release](https://github.com/gunnerkidBT/TwitchAdBlock/releases/tag/v31.9-0.1.18). Includes newer playback-token handling, asynchronous proxy detection and feed-ad filtering fixes. This updates the whole upstream tweak, including its additional settings/features.\n\n### Improved Duo player controls\nRewind skip buttons now check their spacing against LIVE in narrow or short player windows. They hide when there is no room and return after expanding the player. The timeline and LIVE control remain available where the player has space. Existing 44-point hit targets, 10-second skips, purple timeline and drag-only white thumb are retained.\n\n### Existing features retained\n- User-reported-working iPhone Duo window compatibility opt-in.\n- Native live rewind, elapsed stream timestamps and return-to-live control.\n- Anonymous read-only chat integration.\n- Forced Follow local channel shortcuts; no server-side follow or ban status changes.\n- Home-screen name remains **Twitch**.\n\n### Installation and testing status\nDownload the IPA and re-sign every executable component using your usual sideloading workflow.\n\n**Device testing is pending.** This release retains Twitch **30.7** to preserve existing native integrations, while the updated blocker was released for Twitch **31.9**. Ad-block effectiveness and older-host hook compatibility are unverified on device. 43 host tests passed, including 6,728 control-size combinations; archive integrity and full preservation checks passed. Only the ad-block and rewind libraries changed from v1.3. No new on-device performance measurements were made.\n\nDuo adaptation retains the existing SDK metadata opt-in; it is not an Apple SDK rebuild. This is a community project release, not an official Twitch product.\n\n### Integrity\nSHA-256: `6d573ecfc6686bed9a15fc061b315cc19ead5f93faab7fc5594d23aa4f104665`\n",
+    "prerelease": false,
+    "published_at": "2026-11-11T18:58:23Z",
+    "assets": [
+      {
+        "id": 736604349,
+        "name": "SHA256SUMS.txt",
+        "bytes": 114,
+        "digest": "sha256:f851153d59c26881806a714bd7416fca3d5bda3bc29353daa6164b94609f94bc",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.4/SHA256SUMS.txt"
+      },
+      {
+        "id": 736602547,
+        "name": "TwitchPlus-v1.4-AdBlock-Rewind-Duo-unsigned.ipa",
+        "bytes": 152506884,
+        "digest": "sha256:6d573ecfc6686bed9a15fc061b315cc19ead5f93faab7fc5594d23aa4f104665",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.4/TwitchPlus-v1.4-AdBlock-Rewind-Duo-unsigned.ipa"
+      },
+      {
+        "id": 736604432,
+        "name": "v1.4-update-sources.zip",
+        "bytes": 21863,
+        "digest": "sha256:8a612e10cf910a7387e822c4e409f0ab7f267020aee51a944ce85aeb92b5b6d8",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.4/v1.4-update-sources.zip"
+      },
+      {
+        "id": 736604391,
+        "name": "validation.json",
+        "bytes": 1867,
+        "digest": "sha256:20eccf3497bf9571c22b04b30d3b3cd660321b764c5ade9ab95b9d13506d1e96",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.4/validation.json"
+      }
+    ]
+  },
+  {
+    "id": 442081518,
+    "tag": "v1.3",
+    "name": "TwitchPlus v1.3 — AdBlock, Rewind & iPhone Duo Support",
+    "target": "ec8ebcb5adee40d82d6c4191d8e237952765148b",
+    "body": "## TwitchPlus v1.3 — AdBlock, Rewind & iPhone Duo Support\n\n\n\n**[Download the IPA](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.3/TwitchPlus-v1.3-iPhone-Duo-unsigned.ipa)**\n\n\n\n### Included features\n\n- **Ad blocking** from the bundled TwitchAdBlock tweak.\n\n- **Live rewind** with a purple timeline, 10-second back/forward controls, and a LIVE button to return to the live stream.\n\n- **iPhone Duo display adaptation**, including the window compatibility opt-in. The requesting user reported this build working on their Duo.\n\n- **Anonymous read-only chat** integrated into the chat area for supported channels.\n\n- **Forced Follow:** local channel shortcuts in the following list, including channels you cannot follow normally. This does not change your server-side follow or ban status.\n\n- Existing iPhone/iPad layout fixes and adaptive rewind controls.\n\n\n\n### Installation\n\nDownload the IPA below and re-sign all executable components with your usual sideloading tool. The home-screen name remains **Twitch**.\n\n\n\n### Compatibility notes\n\nDuo adaptation uses SDK metadata and window compatibility changes; it is not a rebuild with a newer Apple SDK. Full screen-by-screen testing across all devices has not been performed. Rewind availability and loading speed depend on the stream and available playback data.\n\n\n\nThis is the regular release of this community TwitchPlus project. It is not an official Twitch release or an endorsement by Twitch or Apple.\n\n\n\n### Verification\n\nThe published IPA matches the validated local Duo build. ZIP integrity and byte-preservation checks passed; the prior feature libraries were preserved.\n\n\n\nSHA-256: `6c01e8443df25abe6587b920e3a4db00aed600d1af8f929f1502154636335bfa`\n\n\n\n### v1.3 release\nPromotes the user-tested Duo build to the next numbered TwitchPlus release. This is the same validated IPA content with a versioned download filename; the underlying Twitch app version is preserved.\n",
+    "prerelease": false,
+    "published_at": "2026-11-11T18:45:48Z",
+    "assets": [
+      {
+        "id": 736569014,
+        "name": "SHA256SUMS.txt",
+        "bytes": 106,
+        "digest": "sha256:565f364cf2b613a76fa064f2268acd39a2733edc4f04603cc94c42f902166d61",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.3/SHA256SUMS.txt"
+      },
+      {
+        "id": 736566444,
+        "name": "TwitchPlus-v1.3-iPhone-Duo-unsigned.ipa",
+        "bytes": 152404041,
+        "digest": "sha256:6c01e8443df25abe6587b920e3a4db00aed600d1af8f929f1502154636335bfa",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.3/TwitchPlus-v1.3-iPhone-Duo-unsigned.ipa"
+      },
+      {
+        "id": 736569059,
+        "name": "validation.json",
+        "bytes": 974,
+        "digest": "sha256:135b18ba1d40581e5f89519723375fb7f8312027937ab869346694fe17a2f0bb",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.3/validation.json"
+      }
+    ]
+  },
+  {
+    "id": 438024828,
+    "tag": "v1.2.2-beta.6",
+    "name": "TwitchPlus 1.2.2 Beta 6 | Ad Block + Live Rewind",
+    "target": "0fc8be676aaabd0c0e590772033170bd06ce0124",
+    "body": "## TwitchPlus 1.2.2 Beta 6 | Ad Block + Live Rewind\n\n**[Installation and feature guide](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind#readme)**\n\n**[Download this version's IPA](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.2.2-beta.6/TwitchPlus-1.2.2-Beta6-unsigned.ipa)**\n\n### Features\n- Native rewind timeline, precise HH:MM:SS drag timestamps, ten-second skip icons, and return-to-LIVE badge.\n- **Anti-Ban: read chat while banned** through the native anonymous read-only fallback when public chat is accessible.\n- **Anti-Ban: Forced Follow** keeps a banned channel in the local live Following list, including the iPad sidebar, even when your Twitch account cannot follow it. Open a channel and tap Forced Follow; tap again to remove it.\n- Preserves the base TwitchAdBlock component.\n\nAnti-Ban works around app-side viewing and local-list limitations. It does not remove a ban, allow sending messages while banned, or create a real Twitch follow. Forced Follow is stored locally.\n\n### Updates and downloads\nThis release's Assets include the IPA, SHA-256 checksum, and validation summary. Choose the `.ipa`, not the source-code ZIP. Every future published version gets a separate release; older published downloads remain available.\n\nIncluded performance improvements remove the duplicate startup seek, coalesces rapid taps, preserves ready preparation during refresh, rejects stale prepared history, starts preparation earlier, and retries transient API failures sooner. UI and video quality are unchanged.\n\n### Install\nDownload the `.ipa` asset below, sign all executable components with your usual sideloading setup, or use your existing LiveContainer workflow. Home-screen name remains **Twitch**. Rewind requires an accessible ongoing recording.\n\n### Validation\n35 production-function host tests passed, plus archive integrity and preservation checks. **Device performance has not been benchmarked.** This is a beta; instant or flawless playback is not promised.\n\nSHA-256: `8637e0461135b4636ace57376d187b395dffe6512e9fa9a0cfa209fb4267a181`\n",
+    "prerelease": false,
+    "published_at": "2026-11-08T04:11:06Z",
+    "assets": [
+      {
+        "id": 722845557,
+        "name": "SHA256SUMS.txt",
+        "bytes": 102,
+        "digest": "sha256:7e3c20950697671d42843cd699d39692661a09fb19c7523c5902b49a73f8c0c7",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.2.2-beta.6/SHA256SUMS.txt"
+      },
+      {
+        "id": 722843924,
+        "name": "TwitchPlus-1.2.2-Beta6-unsigned.ipa",
+        "bytes": 152402598,
+        "digest": "sha256:8637e0461135b4636ace57376d187b395dffe6512e9fa9a0cfa209fb4267a181",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.2.2-beta.6/TwitchPlus-1.2.2-Beta6-unsigned.ipa"
+      },
+      {
+        "id": 722868352,
+        "name": "validation.json",
+        "bytes": 338,
+        "digest": "sha256:93315cbd1518358b909e3487f469af24a5c5ba536fac26b95bab9d7934763790",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/v1.2.2-beta.6/validation.json"
+      }
+    ]
+  },
+  {
+    "id": 438563329,
+    "tag": "duo-window-optin-test2",
+    "name": "TwitchPlus — AdBlock, Rewind & iPhone Duo Support",
+    "target": "main",
+    "body": "## TwitchPlus — AdBlock, Rewind & iPhone Duo Support\n\n\n\n**[Download the IPA](https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/duo-window-optin-test2/TwitchPlus-Duo-WindowOptIn-Test2-unsigned.ipa)**\n\n\n\n### Included features\n\n- **Ad blocking** from the bundled TwitchAdBlock tweak.\n\n- **Live rewind** with a purple timeline, 10-second back/forward controls, and a LIVE button to return to the live stream.\n\n- **iPhone Duo display adaptation**, including the window compatibility opt-in. The requesting user reported this build working on their Duo.\n\n- **Anonymous read-only chat** integrated into the chat area for supported channels.\n\n- **Forced Follow:** local channel shortcuts in the following list, including channels you cannot follow normally. This does not change your server-side follow or ban status.\n\n- Existing iPhone/iPad layout fixes and adaptive rewind controls.\n\n\n\n### Installation\n\nDownload the IPA below and re-sign all executable components with your usual sideloading tool. The home-screen name remains **Twitch**.\n\n\n\n### Compatibility notes\n\nDuo adaptation uses SDK metadata and window compatibility changes; it is not a rebuild with a newer Apple SDK. Full screen-by-screen testing across all devices has not been performed. Rewind availability and loading speed depend on the stream and available playback data.\n\n\n\nThis is the regular release of this community TwitchPlus project. It is not an official Twitch release or an endorsement by Twitch or Apple.\n\n\n\n### Verification\n\nThe published IPA matches the validated local Duo build. ZIP integrity and byte-preservation checks passed; the prior feature libraries were preserved.\n\n\n\nSHA-256: `6c01e8443df25abe6587b920e3a4db00aed600d1af8f929f1502154636335bfa`\n\n",
+    "prerelease": false,
+    "published_at": "2026-11-08T22:24:14Z",
+    "assets": [
+      {
+        "id": 725393280,
+        "name": "experimental-validation.json",
+        "bytes": 847,
+        "digest": "sha256:7a47c825fff2f2d5d004175ee65305d4c7bf3d10cd4228247e2fbba79c88612b",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/duo-window-optin-test2/experimental-validation.json"
+      },
+      {
+        "id": 725393195,
+        "name": "SHA256SUMS.txt",
+        "bytes": 112,
+        "digest": "sha256:d7bd40e7f4d2b12ccd6f0490597ba2bb767566bda566fd96a3ae06839c41a16e",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/duo-window-optin-test2/SHA256SUMS.txt"
+      },
+      {
+        "id": 725387229,
+        "name": "TwitchPlus-Duo-WindowOptIn-Test2-unsigned.ipa",
+        "bytes": 152404041,
+        "digest": "sha256:6c01e8443df25abe6587b920e3a4db00aed600d1af8f929f1502154636335bfa",
+        "download": "https://github.com/Kite1219/TwitchPlus-AdBlock-Rewind/releases/download/duo-window-optin-test2/TwitchPlus-Duo-WindowOptIn-Test2-unsigned.ipa"
+      }
+    ]
+  }
+]
